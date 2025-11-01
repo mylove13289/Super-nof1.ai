@@ -216,10 +216,10 @@ psql --version
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/open-nof1.ai.git
+git clone git@github.com:qingshungLI/Super-nof1.ai.git
 
 # 进入项目目录
-cd open-nof1.ai
+cd Super-nof1.ai
 ```
 
 ### 第 7 步：安装项目依赖
@@ -265,10 +265,10 @@ npm install
    # 数据库配置
    # ==========================================
    # 格式：postgresql://用户名:密码@主机:端口/数据库名
-   DATABASE_URL="postgresql://trading_user:your_secure_password@localhost:5432/trading_db"
-   
+   DATABASE_URL="postgresql://trading_user:(your_secure_password)@localhost:5432/nof1"
+   #(your_secure_password)里面填入密码(去掉括号，括号是为好看),(nof1)可以替换成为你的数据库名称
    # 如果使用 postgres 用户：
-   # DATABASE_URL="postgresql://postgres:your_postgres_password@localhost:5432/trading_db"
+   # DATABASE_URL="postgresql://postgres:(your_postgres_password)@localhost:5432/nof1"
 
    # ==========================================
    # 币安 API 配置（重要更新！）
@@ -278,7 +278,7 @@ npm install
    BINANCE_TESTNET_API_KEY="你的虚拟盘API密钥"
    BINANCE_TESTNET_API_SECRET="你的虚拟盘API密钥Secret"
    BINANCE_TESTNET_BASE_URL="https://demo-fapi.binance.com"
-
+   #API需要保留引号！
    # 实盘 API 配置
    BINANCE_LIVE_API_KEY="你的实盘API密钥"
    BINANCE_LIVE_API_SECRET="你的实盘API密钥Secret"
@@ -287,13 +287,14 @@ npm install
    # 交易模式：dry-run（虚拟盘）或 live（实盘）
    # 💡 只需修改这一个参数即可切换模式！系统会自动使用对应的 API 配置
    TRADING_MODE="dry-run"
+   # 如果改成live就是实盘操控
 
    # ==========================================
    # 代理配置（可选）
    # ==========================================
-   # 如果需要通过代理访问币安 API
+   # 如果需要通过代理访问币安 API（calsh需用端口7890）
    BINANCE_HTTP_PROXY=http://127.0.0.1:7890
-   # 如果不需要代理，设置为 true
+   # 如果不需要代理，设置为 true（在中国大陆访问需要代理并且需要非中非美ip ）
    # BINANCE_DISABLE_PROXY=true
 
    # ==========================================
@@ -307,25 +308,18 @@ npm install
    # ==========================================
    NEXT_PUBLIC_URL="http://localhost:3000"
    CRON_SECRET_KEY="abc123secretkey_change_this_in_production"
-   DEEPSEEK_API_KEY="你的DeepSeek密钥"
 
-   # 或使用 OpenRouter
-   OPENROUTER_API_KEY="你的OpenRouter密钥"
 
    # ==========================================
    # 交易配置
    # ==========================================
-   # 初始资金（虚拟盘使用）
-   START_MONEY=10000
+ 
+   # Risk Control Parameters (适用于虚拟盘和实盘 / Apply to both virtual and live trading，可自行设定)
+MAX_POSITION_SIZE_USDT=5000  # 最大持仓Maximum position size in USDT (increased for aggressive strategy)
+MAX_LEVERAGE=30  # 最大杠杆Maximum allowed leverage (increased to 30x for high-yield strategy)
+DAILY_LOSS_LIMIT_PERCENT=20  # 最大日损失限制Daily loss limit as percentage of capital (20% for aggressive trading)
 
-   # 显示 AI 提示词（调试用）
-   # SHOW_PROMPT_PREVIEW=true
 
-   # ==========================================
-   # 其他配置
-   # ==========================================
-   NODE_ENV=development
-   ```
 
 ### 第 9 步：初始化数据库
 
