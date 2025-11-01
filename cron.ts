@@ -2,7 +2,6 @@ import cron from "node-cron";
 import jwt from "jsonwebtoken";
 
 const runMetricsInterval = async () => {
-  console.log("Running task 20 seconds metrics interval");
   const token = jwt.sign(
     {
       sub: "cron-token",
@@ -10,23 +9,31 @@ const runMetricsInterval = async () => {
     process.env.CRON_SECRET_KEY || ""
   );
 
-  await fetch(
-    `${process.env.NEXT_PUBLIC_URL}/api/cron/20-seconds-metrics-interval?token=${token}`,
-    {
-      method: "GET",
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_URL}/api/cron/20-seconds-metrics-interval?token=${token}`,
+      {
+        method: "GET",
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[cron:metrics] Failed (${response.status}): ${errorText}`
+      );
     }
-  );
-
-  console.log("20 seconds metrics interval executed");
+  } catch (error) {
+    console.error("[cron:metrics] Error:", error);
+  }
 };
 
-// every 20 seconds
-cron.schedule("*/10 * * * * *", async () => {
+// every 30 seconds
+cron.schedule("*/30 * * * * *", async () => {
   await runMetricsInterval();
 });
 
 const runChatInterval = async () => {
-  console.log("Running task every 3 minutes");
+  console.log("🤖 Trading analysis starting...");
   const token = jwt.sign(
     {
       sub: "cron-token",
@@ -34,15 +41,28 @@ const runChatInterval = async () => {
     process.env.CRON_SECRET_KEY || ""
   );
 
-  await fetch(
-    `${process.env.NEXT_PUBLIC_URL}/api/cron/3-minutes-run-interval?token=${token}`,
-    {
-      method: "GET",
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_URL}/api/cron/3-minutes-run-interval?token=${token}`,
+      {
+        method: "GET",
+        signal: AbortSignal.timeout(900000), // 15分钟超时
+      }
+    );
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `[cron:chat] Failed (${response.status}): ${errorText}`
+      );
+    } else {
+      console.log("✅ Trading analysis completed");
     }
-  );
+  } catch (error) {
+    console.error("[cron:chat] Error:", error);
+  }
 };
 
-// every 3 minutes
+// every 3 minutes - optimized for active trading
 cron.schedule("*/3 * * * *", async () => {
   await runChatInterval();
 });

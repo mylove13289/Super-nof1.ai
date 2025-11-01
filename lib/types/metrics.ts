@@ -1,4 +1,4 @@
-import { Position } from "ccxt";
+import { Position } from "./position";
 
 export interface MetricData {
   positions: Position[];

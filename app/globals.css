@@ -116,6 +116,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -126,10 +127,12 @@
     transform: translateY(0);
     opacity: 1;
   }
+
   50% {
     transform: translateY(-10px);
     opacity: 0.3;
   }
+
   100% {
     transform: translateY(0);
     opacity: 1;
@@ -138,6 +141,42 @@
 
 .animate-slot-machine {
   animation: slot-machine 0.3s ease-in-out;
+}
+
+/* Premium shimmer animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(var(--muted) / 0.3);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--muted-foreground) / 0.3);
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--muted-foreground) / 0.5);
 }
 
 /* Markdown styling for chat content */

@@ -5,30 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { ModelType } from "@prisma/client";
 import { InputJsonValue, JsonValue } from "@prisma/client/runtime/library";
 
-// maximum number of metrics to keep
-const MAX_METRICS_COUNT = 100;
-
-/**
- * uniformly sample the array, keeping the first and last elements unchanged
- * @param data - the original data array
- * @param maxSize - the maximum number of metrics to keep
- * @returns the sampled data array
- */
-function uniformSampleWithBoundaries<T>(data: T[], maxSize: number): T[] {
-  if (data.length <= maxSize) {
-    return data;
-  }
-
-  const result: T[] = [];
-  const step = (data.length - 1) / (maxSize - 1);
-
-  for (let i = 0; i < maxSize; i++) {
-    const index = Math.round(i * step);
-    result.push(data[index]);
-  }
-
-  return result;
-}
+// 🔧 大幅提高存储上限,保留更多历史数据
+// 10080 个点 = 7天数据 (每20秒一个点)
+// 43200 个点 = 30天数据
+const MAX_METRICS_COUNT = 10080; // 保留7天历史数据
 
 export const GET = async (request: NextRequest) => {
   const url = new URL(request.url);
@@ -44,8 +24,17 @@ export const GET = async (request: NextRequest) => {
     return new Response("Invalid token", { status: 401 });
   }
 
-  const accountInformationAndPerformance =
-    await getAccountInformationAndPerformance(Number(process.env.START_MONEY));
+  let accountInformationAndPerformance;
+  try {
+    // 不再硬编码 START_MONEY，首次自动读取真实余额作为基准
+    accountInformationAndPerformance = await getAccountInformationAndPerformance();
+  } catch (err) {
+    console.error(
+      "[cron:20s] getAccountInformationAndPerformance failed:",
+      err
+    );
+    throw err; // 连接失败不写入兜底数据，让调用方知晓
+  }
 
   let existMetrics = await prisma.metrics.findFirst({
     where: {
@@ -56,7 +45,7 @@ export const GET = async (request: NextRequest) => {
   if (!existMetrics) {
     existMetrics = await prisma.metrics.create({
       data: {
-        name: "20-seconds-metrics",
+        name: "live-trading",
         metrics: [],
         model: ModelType.Deepseek,
       },
@@ -72,10 +61,13 @@ export const GET = async (request: NextRequest) => {
     },
   ] as JsonValue[];
 
-  // if the metrics count exceeds the maximum limit, uniformly sample the metrics
+  // 🔧 简单截断旧数据,保留最新的 MAX_METRICS_COUNT 个点
+  // 不再使用采样,保证数据连续性
   let finalMetrics = newMetrics;
   if (newMetrics.length > MAX_METRICS_COUNT) {
-    finalMetrics = uniformSampleWithBoundaries(newMetrics, MAX_METRICS_COUNT);
+    // 只保留最新的数据点,删除最旧的
+    finalMetrics = newMetrics.slice(newMetrics.length - MAX_METRICS_COUNT);
+    console.log(`🗑️ Trimmed old data: ${newMetrics.length} -> ${finalMetrics.length} points`);
   }
 
   await prisma.metrics.update({

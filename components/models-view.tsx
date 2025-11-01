@@ -12,6 +12,16 @@ import { ChevronDown, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+interface Prediction {
+  short_term_trend: "bullish" | "bearish" | "neutral";
+  confidence: "high" | "medium" | "low";
+  key_levels: {
+    support: number;
+    resistance: number;
+  };
+  analysis: string;
+}
+
 interface Trading {
   id: string;
   symbol: string;
@@ -21,6 +31,7 @@ interface Trading {
   pricing?: number | null;
   stopLoss?: number | null;
   takeProfit?: number | null;
+  prediction?: Prediction | null;
   createdAt: string;
 }
 
@@ -35,33 +46,63 @@ interface Chat {
   updatedAt: string;
 }
 
+interface Position {
+  symbol: string;
+  side: string;
+  contracts: number;
+  contractSize: number;
+  entryPrice: number;
+  markPrice: number;
+  notional: number;
+  leverage: number;
+  unrealizedPnl: number;
+  percentage: number;
+  marginType: string;
+  liquidationPrice: number;
+  initialMargin: number;
+  maintenanceMargin: number;
+}
+
+interface ActivityData {
+  chats: Chat[];
+  positions: Position[];
+}
+
 type TabType = "completed-trades" | "model-chat" | "positions";
 
 export function ModelsView() {
   const [activeTab, setActiveTab] = useState<TabType>("model-chat");
   const [chats, setChats] = useState<Chat[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedChatId, setExpandedChatId] = useState<string | null>(null);
 
-  const fetchChats = useCallback(async () => {
+  // 固定展示的5种代币顺序
+  const DEFAULT_FIVE_SYMBOLS = ["BTC", "ETH", "BNB", "SOL", "DOGE"] as const;
+
+  const fetchActivity = useCallback(async () => {
     try {
-      const response = await fetch("/api/model/chat");
+      const response = await fetch("/api/activity");
       if (!response.ok) return;
 
-      const data = await response.json();
-      setChats(data.data || []);
+      const result = await response.json();
+      if (result.success && result.data) {
+        setChats(result.data.chats || []);
+        setPositions(result.data.positions || []);
+      }
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching chats:", err);
+      console.error("Error fetching activity:", err);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchChats();
-    const interval = setInterval(fetchChats, 30000);
+    fetchActivity();
+    // 每10秒刷新一次实时数据
+    const interval = setInterval(fetchActivity, 10000);
     return () => clearInterval(interval);
-  }, [fetchChats]);
+  }, [fetchActivity]);
 
   // 只获取 Buy 和 Sell 操作的交易
   const completedTrades = chats.flatMap((chat) =>
@@ -229,6 +270,196 @@ export function ModelsView() {
     );
   };
 
+  const renderPositions = () => {
+    if (loading) {
+      return <div className="text-center py-8 text-sm">Loading positions...</div>;
+    }
+
+    if (positions.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          No open positions
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        <div className="text-xs text-muted-foreground mb-2">
+          {positions.length} open position{positions.length > 1 ? "s" : ""}
+        </div>
+        {positions.map((position, idx) => {
+          const isProfitable = position.unrealizedPnl >= 0;
+          const isLong = position.side === "long";
+
+          return (
+            <Card key={`${position.symbol}-${idx}`} className="overflow-hidden">
+              <CardContent className="p-4">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3 pb-3 border-b">
+                  <div className="flex items-center gap-2">
+                    {isLong ? (
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className="font-bold text-base uppercase">
+                      {position.side}
+                    </span>
+                    <span className="font-mono font-bold text-base">
+                      {position.symbol}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-mono font-bold">
+                      {position.leverage}x
+                    </span>
+                  </div>
+                </div>
+
+                {/* Position details grid */}
+                <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                  {/* Contracts */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Contracts
+                    </div>
+                    <div className="font-mono font-semibold">
+                      {position.contracts.toFixed(3)}
+                    </div>
+                  </div>
+
+                  {/* Notional Value */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Notional
+                    </div>
+                    <div className="font-mono font-semibold">
+                      $
+                      {Math.abs(position.notional).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Entry Price */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Entry Price
+                    </div>
+                    <div className="font-mono font-semibold">
+                      $
+                      {position.entryPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Mark Price */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Mark Price
+                    </div>
+                    <div className="font-mono font-semibold">
+                      $
+                      {position.markPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Liquidation Price */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Liquidation
+                    </div>
+                    <div className="font-mono font-semibold text-red-500">
+                      $
+                      {position.liquidationPrice.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Margin Type */}
+                  <div className="space-y-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Margin Type
+                    </div>
+                    <div className="font-mono font-semibold uppercase text-xs">
+                      {position.marginType}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PnL Section */}
+                <div
+                  className={`mt-3 pt-3 border-t rounded-lg p-3 ${isProfitable
+                    ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-900"
+                    : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900"
+                    }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      Unrealized PnL
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={`font-mono font-bold text-base ${isProfitable ? "text-green-600" : "text-red-600"
+                          }`}
+                      >
+                        {isProfitable ? "+" : ""}$
+                        {position.unrealizedPnl.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                      <div
+                        className={`text-xs font-semibold ${isProfitable ? "text-green-600" : "text-red-600"
+                          }`}
+                      >
+                        {isProfitable ? "+" : ""}
+                        {position.percentage.toFixed(2)}%
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Margin info */}
+                <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-3 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Initial:</span>
+                    <span className="font-mono font-medium">
+                      $
+                      {position.initialMargin.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Maintenance:</span>
+                    <span className="font-mono font-medium">
+                      $
+                      {position.maintenanceMargin.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderModelChat = () => {
     if (loading) {
       return <div className="text-center py-8 text-sm">Loading chats...</div>;
@@ -246,7 +477,32 @@ export function ModelsView() {
       <div className="space-y-4">
         {chats.map((chat) => {
           const isExpanded = expandedChatId === chat.id;
-          const decisions = chat.tradings;
+          // 前端补齐：总是展示5种代币的决策；若缺失则以 Hold 占位
+          const decisions: Trading[] = (() => {
+            const bySymbol = new Map<string, Trading>();
+            for (const t of chat.tradings) bySymbol.set(t.symbol, t);
+
+            const filled: Trading[] = [];
+            for (const sym of DEFAULT_FIVE_SYMBOLS) {
+              const exist = bySymbol.get(sym);
+              if (exist) {
+                filled.push(exist);
+              } else {
+                filled.push({
+                  id: `virtual-${chat.id}-${sym}`,
+                  symbol: sym,
+                  opeartion: "Hold",
+                  leverage: null,
+                  amount: null,
+                  pricing: null,
+                  stopLoss: null,
+                  takeProfit: null,
+                  createdAt: chat.createdAt,
+                });
+              }
+            }
+            return filled;
+          })();
 
           return (
             <Card key={chat.id} className="overflow-hidden max-w-[600px]">
@@ -263,9 +519,8 @@ export function ModelsView() {
                     </div>
                     {/* Chat preview with markdown */}
                     <div
-                      className={`prose prose-sm max-w-none dark:prose-invert text-xs ${
-                        isExpanded ? "" : "line-clamp-2"
-                      }`}
+                      className={`prose prose-sm max-w-none dark:prose-invert text-xs ${isExpanded ? "" : "line-clamp-2"
+                        }`}
                     >
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {chat.chat}
@@ -325,13 +580,12 @@ export function ModelsView() {
                         {decisions.map((decision, idx) => (
                           <div
                             key={idx}
-                            className={`rounded-lg p-3 border-l-4 ${
-                              decision.opeartion === "Buy"
-                                ? "bg-green-50 dark:bg-green-950/20 border-green-500"
-                                : decision.opeartion === "Sell"
+                            className={`rounded-lg p-3 border-l-4 ${decision.opeartion === "Buy"
+                              ? "bg-green-50 dark:bg-green-950/20 border-green-500"
+                              : decision.opeartion === "Sell"
                                 ? "bg-red-50 dark:bg-red-950/20 border-red-500"
                                 : "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-500"
-                            }`}
+                              }`}
                           >
                             {/* Decision header */}
                             <div className="flex items-center gap-2 mb-2">
@@ -352,8 +606,8 @@ export function ModelsView() {
                                     {decision.opeartion === "Buy"
                                       ? "Entry Price:"
                                       : decision.opeartion === "Sell"
-                                      ? "Exit Price:"
-                                      : "Current Price:"}
+                                        ? "Exit Price:"
+                                        : "Current Price:"}
                                   </span>
                                   <span className="font-mono font-semibold">
                                     ${decision.pricing.toLocaleString()}
@@ -417,6 +671,57 @@ export function ModelsView() {
                                   )}
                                 </div>
                               )}
+
+                              {/* K线趋势预测 */}
+                              {decision.prediction && (
+                                <div className="pt-2 mt-2 border-t border-current/30 space-y-1.5">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                      📊 趋势预测
+                                    </span>
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${decision.prediction.confidence === "high"
+                                      ? "bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200"
+                                      : decision.prediction.confidence === "medium"
+                                        ? "bg-yellow-200 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200"
+                                        : "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                                      }`}>
+                                      {decision.prediction.confidence.toUpperCase()}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">短期趋势:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${decision.prediction.short_term_trend === "bullish"
+                                      ? "text-green-600 dark:text-green-400"
+                                      : decision.prediction.short_term_trend === "bearish"
+                                        ? "text-red-600 dark:text-red-400"
+                                        : "text-gray-600 dark:text-gray-400"
+                                      }`}>
+                                      {decision.prediction.short_term_trend === "bullish" && "📈 看涨"}
+                                      {decision.prediction.short_term_trend === "bearish" && "📉 看跌"}
+                                      {decision.prediction.short_term_trend === "neutral" && "➡️ 中性"}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">支撑位:</span>
+                                    <span className="font-mono font-semibold text-green-600 dark:text-green-400">
+                                      ${decision.prediction.key_levels.support.toLocaleString()}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">阻力位:</span>
+                                    <span className="font-mono font-semibold text-red-600 dark:text-red-400">
+                                      ${decision.prediction.key_levels.resistance.toLocaleString()}
+                                    </span>
+                                  </div>
+
+                                  <div className="pt-1 text-xs text-muted-foreground italic">
+                                    💡 {decision.prediction.analysis}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -433,9 +738,8 @@ export function ModelsView() {
               >
                 <span>{isExpanded ? "Show less" : "Expand more"}</span>
                 <ChevronDown
-                  className={`h-3 w-3 transition-transform ${
-                    isExpanded ? "rotate-180" : ""
-                  }`}
+                  className={`h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""
+                    }`}
                 />
               </button>
             </Card>
@@ -446,45 +750,62 @@ export function ModelsView() {
   };
 
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
-      <CardHeader className="pb-3 flex-shrink-0">
-        <CardTitle className="text-lg">Model Activity</CardTitle>
-        <CardDescription className="text-xs">
-          Real-time trading decisions and AI reasoning
-        </CardDescription>
+    <Card className="h-full flex flex-col overflow-hidden border-0 shadow-xl bg-gradient-to-br from-background via-background to-muted/20">
+      <CardHeader className="pb-4 flex-shrink-0 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          </div>
+          <div>
+            <CardTitle className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              AI Activity Feed
+            </CardTitle>
+            <CardDescription className="text-xs font-medium">
+              Real-time decisions • Live reasoning
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col px-4 pb-4 min-h-0">
-        {/* Tabs */}
-        <div className="flex gap-2 border-b mb-4 flex-shrink-0">
+        {/* Premium Tabs */}
+        <div className="flex gap-2 mb-4 flex-shrink-0 bg-muted/30 rounded-xl p-1">
           <button
             onClick={() => setActiveTab("model-chat")}
-            className={`pb-2 px-3 text-xs font-medium transition-colors ${
-              activeTab === "model-chat"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`relative flex-1 pb-2 px-4 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === "model-chat"
+                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              }`}
           >
             CHAT
+            {activeTab === "model-chat" && (
+              <div className="absolute inset-0 bg-white/20 rounded-lg animate-pulse" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("completed-trades")}
-            className={`pb-2 px-3 text-xs font-medium transition-colors ${
-              activeTab === "completed-trades"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`relative flex-1 pb-2 px-4 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === "completed-trades"
+                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              }`}
           >
             TRADES
+            {activeTab === "completed-trades" && (
+              <div className="absolute inset-0 bg-white/20 rounded-lg animate-pulse" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("positions")}
-            className={`pb-2 px-3 text-xs font-medium transition-colors ${
-              activeTab === "positions"
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className={`relative flex-1 pb-2 px-4 text-xs font-bold rounded-lg transition-all duration-300 ${activeTab === "positions"
+                ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+              }`}
           >
             POSITIONS
+            {activeTab === "positions" && (
+              <div className="absolute inset-0 bg-white/20 rounded-lg animate-pulse" />
+            )}
           </button>
         </div>
 
@@ -492,11 +813,7 @@ export function ModelsView() {
         <div className="flex-1 overflow-y-auto min-h-0 -mx-4 px-4">
           {activeTab === "model-chat" && renderModelChat()}
           {activeTab === "completed-trades" && renderCompletedTrades()}
-          {activeTab === "positions" && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              Positions view coming soon...
-            </div>
-          )}
+          {activeTab === "positions" && renderPositions()}
         </div>
       </CardContent>
     </Card>

@@ -1,5 +1,16 @@
 import { EMA, MACD, RSI, ATR } from "technicalindicators";
-import { binance } from "./biance";
+import { getBinanceBaseUrl } from "./binance-official";
+
+export interface KlineData {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  trend: "bullish" | "bearish"; // 阳线/阴线
+  change_percent: number; // 涨跌幅百分比
+}
 
 export interface MarketState {
   // Current indicators
@@ -36,6 +47,13 @@ export interface MarketState {
     average_volume: number;
     macd: number[];
     rsi_14: number[];
+  };
+
+  // K线数�?- 用于趋势预测分析
+  kline_data: {
+    minute_1: KlineData[]; // 最�?0�?分钟K�?
+    hour_4: KlineData[];   // 最�?0�?小时K�?
+    minute_15: KlineData[]; // 最�?0�?5分钟K�?
   };
 }
 
@@ -97,33 +115,114 @@ export async function getCurrentMarketState(
   symbol: string
 ): Promise<MarketState> {
   try {
-    // Normalize symbol format for Binance
+    // Directly call Binance UM Futures REST to avoid ccxt exchangeInfo bootstrap issues
     const normalizedSymbol = symbol.includes("/") ? symbol : `${symbol}/USDT`;
+    const perpSymbol = normalizedSymbol.replace("/", ""); // e.g. BTCUSDT
 
-    // Fetch 1-minute OHLCV data (last 100 candles for intraday analysis)
-    const ohlcv1m = await binance.fetchOHLCV(
-      normalizedSymbol,
-      "1m",
-      undefined,
-      100
-    );
+    // Simple retry helper for transient network errors
+    const withRetry = async <T>(fn: () => Promise<T>, retries = 2, delayMs = 500): Promise<T> => {
+      try {
+        return await fn();
+      } catch (err) {
+        if (retries <= 0) throw err;
+        await new Promise((r) => setTimeout(r, delayMs));
+        return withRetry(fn, retries - 1, delayMs * 2);
+      }
+    };
 
-    // Fetch 4-hour OHLCV data (last 100 candles for longer-term context)
-    const ohlcv4h = await binance.fetchOHLCV(
-      normalizedSymbol,
-      "4h",
-      undefined,
-      100
-    );
+    const defaultTimeoutMs = Number(process.env.BINANCE_FETCH_TIMEOUT_MS || 15000);
+
+    // Optional: build undici ProxyAgent dispatcher when proxy env is present
+    const resolveDispatcher = async (): Promise<any | undefined> => {
+      const useProxy = String(process.env.BINANCE_DISABLE_PROXY || "").toLowerCase() !== "true";
+      const proxyUrl = process.env.BINANCE_HTTP_PROXY || process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
+      if (!useProxy || !proxyUrl) return undefined;
+      try {
+        const undici: any = await import("undici");
+        if (undici?.ProxyAgent) {
+          return new undici.ProxyAgent(proxyUrl);
+        }
+      } catch {
+        // undici not available at runtime; continue without dispatcher
+      }
+      return undefined;
+    };
+    const dispatcher = await resolveDispatcher();
+
+    const fetchJson = async <T>(paths: string[], timeoutMs = defaultTimeoutMs): Promise<T> => {
+      // 只使用第一个URL,但进行多次重�?
+      const url = paths[0];
+      const maxRetries = 5; // 增加�?次重�?
+
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const res = await fetch(url, {
+            next: { revalidate: 0 },
+            signal: controller.signal,
+            ...(dispatcher ? { dispatcher } : {}),
+          } as any);
+
+          clearTimeout(timer);
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`${res.status} ${res.statusText}: ${errorText}`);
+          }
+
+          return (await res.json()) as T;
+        } catch (e) {
+          clearTimeout(timer);
+          lastErr = e;
+
+          if (attempt < maxRetries) {
+            // 指数退�? 1s, 2s, 4s, 8s
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 8000);
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            console.log(`⚠️ Attempt ${attempt}/${maxRetries} failed: ${errorMsg.substring(0, 100)}`);
+            console.log(`   Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+
+      throw lastErr instanceof Error ? lastErr : new Error("fetchJson failed after all retries");
+    };
+
+    // 使用环境变量配置的API地址，默认为虚拟�?
+    const baseUrl = getBinanceBaseUrl();
+    const baseHosts = [baseUrl];
+
+    const fetchKlines = async (interval: string, limit = 100): Promise<number[][]> => {
+      const urls = baseHosts.map(
+        (host) => `${host}/fapi/v1/klines?symbol=${perpSymbol}&interval=${interval}&limit=${limit}`
+      );
+      const data = await fetchJson<any[]>(urls);
+      // Each kline: [ openTime, open, high, low, close, volume, ... ]
+      return data.map((row) => [
+        Number(row[0]),
+        Number(row[1]),
+        Number(row[2]),
+        Number(row[3]),
+        Number(row[4]),
+        Number(row[5]),
+      ]);
+    };
+
+    const ohlcv1m = await withRetry(() => fetchKlines("1m", 100));
+    const ohlcv4h = await withRetry(() => fetchKlines("4h", 100));
 
     // Extract price data from 1-minute candles
-    const closes1m = ohlcv1m.map((candle) => Number(candle[4])); // Close prices
+    const closes1m = ohlcv1m.map((candle: number[]) => Number(candle[4])); // Close prices
 
     // Extract price data from 4-hour candles
-    const closes4h = ohlcv4h.map((candle) => Number(candle[4]));
-    const highs4h = ohlcv4h.map((candle) => Number(candle[2]));
-    const lows4h = ohlcv4h.map((candle) => Number(candle[3]));
-    const volumes4h = ohlcv4h.map((candle) => Number(candle[5]));
+    const closes4h = ohlcv4h.map((candle: number[]) => Number(candle[4]));
+    const highs4h = ohlcv4h.map((candle: number[]) => Number(candle[2]));
+    const lows4h = ohlcv4h.map((candle: number[]) => Number(candle[3]));
+    const volumes4h = ohlcv4h.map((candle: number[]) => Number(candle[5]));
 
     // Calculate intraday indicators (1-minute timeframe)
     const ema20_1m = calculateEMA(closes1m, 20);
@@ -161,20 +260,21 @@ export async function getCurrentMarketState(
     let fundingRate = 0;
 
     try {
-      // Try to fetch open interest
-      const perpSymbol = normalizedSymbol.replace("/", "");
-      const openInterest = await binance.fetchOpenInterest(perpSymbol);
+      // Open Interest
+      const oiUrls = baseHosts.map(
+        (host) => `${host}/fapi/v1/openInterest?symbol=${perpSymbol}`
+      );
+      const oiJson = await withRetry(() => fetchJson<{ openInterest?: string }>(oiUrls));
+      const oiVal = oiJson?.openInterest ? Number(oiJson.openInterest) : 0;
+      openInterestData.latest = oiVal;
+      openInterestData.average = oiVal; // placeholder average
 
-      if (openInterest && typeof openInterest.openInterestAmount === "number") {
-        openInterestData.latest = openInterest.openInterestAmount;
-        openInterestData.average = openInterest.openInterestAmount; // Using same value as average
-      }
-
-      // Try to fetch funding rate
-      const fundingRates = await binance.fetchFundingRate(normalizedSymbol);
-      if (fundingRates && typeof fundingRates.fundingRate === "number") {
-        fundingRate = fundingRates.fundingRate;
-      }
+      // Funding rate (from premiumIndex)
+      const frUrls = baseHosts.map(
+        (host) => `${host}/fapi/v1/premiumIndex?symbol=${perpSymbol}`
+      );
+      const frJson = await withRetry(() => fetchJson<{ lastFundingRate?: string }>(frUrls));
+      fundingRate = frJson?.lastFundingRate ? Number(frJson.lastFundingRate) : 0;
     } catch (error) {
       console.warn("Could not fetch open interest or funding rate:", error);
       // Continue with default values
@@ -182,8 +282,31 @@ export async function getCurrentMarketState(
 
     // Calculate average volume for 4-hour timeframe
     const averageVolume4h =
-      volumes4h.reduce((sum, vol) => sum + vol, 0) / volumes4h.length;
+      volumes4h.reduce((sum: number, vol: number) => sum + vol, 0) /
+      volumes4h.length;
     const currentVolume4h = volumes4h[volumes4h.length - 1];
+
+    // 构建 K 线数�?- 最�?0根用于趋势分�?
+    const buildKlineData = (ohlcv: number[][], count: number = 10): KlineData[] => {
+      return ohlcv.slice(-count).map((candle) => {
+        const open = candle[1];
+        const close = candle[4];
+        const change_percent = ((close - open) / open) * 100;
+        return {
+          timestamp: candle[0],
+          open: candle[1],
+          high: candle[2],
+          low: candle[3],
+          close: candle[4],
+          volume: candle[5],
+          trend: close >= open ? "bullish" : "bearish",
+          change_percent,
+        };
+      });
+    };
+
+    // 获取15分钟K线数�?
+    const ohlcv15m = await withRetry(() => fetchKlines("15m", 100));
 
     return {
       current_price,
@@ -209,6 +332,11 @@ export async function getCurrentMarketState(
         macd: last10MACD4h,
         rsi_14: last10RSI14_4h,
       },
+      kline_data: {
+        minute_1: buildKlineData(ohlcv1m, 10),
+        hour_4: buildKlineData(ohlcv4h, 10),
+        minute_15: buildKlineData(ohlcv15m, 10),
+      },
     };
   } catch (error) {
     console.error("Error fetching market state:", error);
@@ -219,61 +347,46 @@ export async function getCurrentMarketState(
 /**
  * Format market state as a human-readable string
  */
-export function formatMarketState(state: MarketState): string {
-  return `
-Current Market State:
-current_price = ${
-    state.current_price
-  }, current_ema20 = ${state.current_ema20.toFixed(
-    3
-  )}, current_macd = ${state.current_macd.toFixed(
-    3
-  )}, current_rsi (7 period) = ${state.current_rsi.toFixed(3)}
+export function formatMarketState(symbol: string, state: MarketState): string {
+  // Format K-line data
+  const formatKlines = (klines: KlineData[], label: string) => {
+    const lines = klines.map((k, i) => {
+      const trendEmoji = k.trend === "bullish" ? "📈" : "📉";
+      const trendText = k.trend === "bullish" ? "Bullish" : "Bearish";
+      return `  Candle ${i + 1}: ${trendEmoji} ${trendText} | O:${k.open.toFixed(2)} H:${k.high.toFixed(2)} L:${k.low.toFixed(2)} C:${k.close.toFixed(2)} | Change: ${k.change_percent >= 0 ? "+" : ""}${k.change_percent.toFixed(2)}% | Vol: ${k.volume.toFixed(0)}`;
+    });
+    return `\n${label} Candlestick Data (Latest 10 candles, oldest �?newest):\n${lines.join("\n")}`;
+  };
 
-In addition, here is the latest BTC open interest and funding rate for perps:
+  return `## ALL ${symbol} DATA
 
-Open Interest: Latest: ${state.open_interest.latest.toFixed(
-    2
-  )} Average: ${state.open_interest.average.toFixed(2)}
-
+I. Real-time Indicators
+current_price: ${state.current_price}
+current_ema20: ${state.current_ema20.toFixed(3)}
+current_macd: ${state.current_macd.toFixed(3)}
+current_rsi (7 period): ${state.current_rsi.toFixed(3)}
+Open Interest (Latest): ${state.open_interest.latest.toFixed(2)}
+Open Interest (Average): ${state.open_interest.average.toFixed(2)}
 Funding Rate: ${state.funding_rate.toExponential(2)}
 
-Intraday series (by minute, oldest → latest):
-
+II. Intraday Series Indicators (3-minute intervals, oldest �?newest)
 Mid prices: [${state.intraday.mid_prices.map((v) => v.toFixed(1)).join(", ")}]
-
-EMA indicators (20‑period): [${state.intraday.ema_20
-    .map((v) => v.toFixed(3))
-    .join(", ")}]
-
+EMA indicators (20-period): [${state.intraday.ema_20.map((v) => v.toFixed(3)).join(", ")}]
 MACD indicators: [${state.intraday.macd.map((v) => v.toFixed(3)).join(", ")}]
+RSI indicators (7-Period): [${state.intraday.rsi_7.map((v) => v.toFixed(3)).join(", ")}]
+RSI indicators (14-Period): [${state.intraday.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
 
-RSI indicators (7‑Period): [${state.intraday.rsi_7
-    .map((v) => v.toFixed(3))
-    .join(", ")}]
-
-RSI indicators (14‑Period): [${state.intraday.rsi_14
-    .map((v) => v.toFixed(3))
-    .join(", ")}]
-
-Longer‑term context (4‑hour timeframe):
-
-20‑Period EMA: ${state.longer_term.ema_20.toFixed(
-    3
-  )} vs. 50‑Period EMA: ${state.longer_term.ema_50.toFixed(3)}
-
-3‑Period ATR: ${state.longer_term.atr_3.toFixed(
-    3
-  )} vs. 14‑Period ATR: ${state.longer_term.atr_14.toFixed(3)}
-
-Current Volume: ${state.longer_term.current_volume.toFixed(
-    3
-  )} vs. Average Volume: ${state.longer_term.average_volume.toFixed(3)}
-
+III. Longer-term Context Indicators (4-hour timeframe)
+20-Period EMA: ${state.longer_term.ema_20.toFixed(3)}
+50-Period EMA: ${state.longer_term.ema_50.toFixed(3)}
+3-Period ATR: ${state.longer_term.atr_3.toFixed(3)}
+14-Period ATR: ${state.longer_term.atr_14.toFixed(3)}
+Current Volume: ${state.longer_term.current_volume.toFixed(3)}
+Average Volume: ${state.longer_term.average_volume.toFixed(3)}
 MACD indicators: [${state.longer_term.macd.map((v) => v.toFixed(3)).join(", ")}]
-
-RSI indicators (14‑Period): [${state.longer_term.rsi_14
-    .map((v) => v.toFixed(3))
-    .join(", ")}]
+RSI indicators (14-Period): [${state.longer_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
+${formatKlines(state.kline_data.minute_1, "1-Minute")}
+${formatKlines(state.kline_data.minute_15, "15-Minute")}
+${formatKlines(state.kline_data.hour_4, "4-Hour")}
 `.trim();
 }

@@ -45,12 +45,45 @@ model Trading {
   pricing    Int?
   stopLoss   Int?
   takeProfit Int?
+  
+  // K线趋势预测数据（JSON格式）
+  // 包含: short_term_trend, confidence, key_levels (support/resistance), analysis
+  prediction Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   Chat   Chat?   @relation(fields: [chatId], references: [id], onDelete: Cascade)
   chatId String?
+  
+  // Learning feedback relation
+  lessons TradingLesson[]
+}
+
+model TradingLesson {
+  id String @id @default(uuid())
+  
+  tradeId String
+  trade   Trading @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  
+  symbol            Symbol
+  decision          String  // Buy/Sell/Hold
+  outcome           String  // profit/loss/pending
+  pnl               Float   // Profit/Loss amount in USD
+  pnlPercentage     Float   // Profit/Loss percentage
+  lessonText        String  @db.Text // The lesson learned from this trade
+  exitReason        String  // Why the trade was closed
+  
+  // Context data for learning
+  marketConditions  Json?   // Market state at entry
+  indicatorsAtEntry Json?   // Technical indicators at entry
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([outcome])
+  @@index([createdAt])
+  @@index([symbol])
 }
 
 enum Opeartion {
@@ -65,6 +98,11 @@ enum Symbol {
   BNB
   SOL
   DOGE
+  ADA
+  DOT
+  MATIC
+  AVAX
+  LINK
 }
 
 enum ModelType {
