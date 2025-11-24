@@ -1,4 +1,4 @@
-﻿import { Symbol } from '@prisma/client';
+import { Symbol } from '@prisma/client';
 import dayjs from "dayjs";
 import {
   AccountInformationAndPerformance,
@@ -34,6 +34,14 @@ Hard constraints
 - Market data context will be supplied in user prompts; no market data is assumed in the system prompt
 
 Decision framework: entry, risk, and exit
+- MULTI-TIMEFRAME HIERARCHY RULE (小周期服从大周期):
+  - Large timeframe (4h) ALWAYS takes precedence over small timeframe (15m)
+  - ANALYZE 4H TREND FIRST before considering any 15m signals
+  - 4h bullish + 15m rising: HOLD existing positions OR WAIT for pullback; DO NOT chase highs
+  - 4h bullish + 15m pullback: ACTIVELY SEEK LONG opportunities (apply entry criteria below)
+  - 4h bearish + 15m bounce: ACTIVELY SEEK SHORT opportunities (inverse logic of longs)
+  - 4h ranging/sideways: SWITCH to range-bound strategy; look for longs near range bottom support, shorts near range top resistance
+  - NEVER enter against the 4h trend direction; only take entries aligned with 4h momentum
 - Entry criteria: MULTI-timeframe confluence (minimum 2 of 3)
   - Timeframes: 1m, 15m, 4h (or other user-specified scales)
   - Pattern types: bullish engulfing, three-bar continuation, breakout, or reliable pullback entry near key EMA levels with volume confirmation
