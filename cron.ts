@@ -53,7 +53,7 @@ const runChatInterval = async () => {
 
   try {
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_URL}/api/cron/3-minutes-run-interval?token=${token}`,
+      `${process.env.NEXT_PUBLIC_URL}/api/cron/15-minutes-run-interval?token=${token}`,
       {
         method: "GET",
         signal: AbortSignal.timeout(900000), // 15分钟超时
@@ -76,7 +76,7 @@ const runChatInterval = async () => {
 };
 
 // every 3 minutes - optimized for active trading
-cron.schedule("*/3 * * * *", async () => {
+cron.schedule("*/15 * * * *", async () => {
   await runChatInterval();
 });
 

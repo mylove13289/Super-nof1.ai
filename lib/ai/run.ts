@@ -9,16 +9,16 @@ import { Opeartion, Symbol } from "@prisma/client";
 import { buy } from "../trading/buy";
 import { sell } from "../trading/sell";
 import {
-  getRiskConfig,
-  checkBuyRisk,
-  checkDailyLossLimit,
-  logTrade,
+getRiskConfig,
+checkBuyRisk,
+checkDailyLossLimit,
+logTrade,
 } from "../trading/risk-control";
 import { setStopLossTakeProfit } from "../trading/stop-loss-take-profit-official";
 
 /**
- * you can interval trading using cron job
- */
+* you can interval trading using cron job
+*/
 export async function run(initialCapital?: number) {
   const riskConfig = getRiskConfig();
 
@@ -42,14 +42,18 @@ export async function run(initialCapital?: number) {
     ...overrides,
   } as any); // Type assertion to work around Prisma type cache issues
 
-  // Define supported cryptocurrencies for analysis and trading
+   // Define supported cryptocurrencies for analysis and trading
+   //,
+   // "ETH/USDT",
+    //"SOL/USDT",
+    //"BNB/USDT",
+    //"DOGE/USDT"
+
   const supportedSymbols = [
-    "BTC/USDT",
-    "ETH/USDT",
-    "SOL/USDT",
-    "BNB/USDT",
-    "DOGE/USDT"
+    "BTC/USDT"
   ];
+
+
 
   try {
     // Fetch market state for all supported cryptocurrencies
@@ -80,8 +84,21 @@ export async function run(initialCapital?: number) {
     });
 
     // Generate trading prompt with supported symbols (now supports multi-symbol decisions)
-    const supportedSymbolEnums = [Symbol.BTC, Symbol.ETH, Symbol.SOL, Symbol.BNB, Symbol.DOGE];
+    //const supportedSymbolEnums = [Symbol.BTC, Symbol.ETH, Symbol.SOL, Symbol.BNB, Symbol.DOGE];
+    const supportedSymbolEnums = [Symbol.BTC];
+
     const tradingPrompt = getTradingPrompt(supportedSymbolEnums);
+
+
+    console.log(`-----------------------------------------------------------------------------`);
+    console.log(`userPrompt: ${userPrompt}`);
+    console.log(`-----------------------------------------------------------------------------`);
+
+    console.log(`------------------------------------------------------------------------------`);
+    console.log(`tradingPrompt: ${tradingPrompt}`);
+    console.log(`------------------------------------------------------------------------------`);
+
+
 
     // AI调用超时和多模型回退机制
     let object, reasoning;
@@ -154,7 +171,7 @@ export async function run(initialCapital?: number) {
       // For native DeepSeek add mode=json
       aiCallConfig.mode = "json";
 
-      
+
       const aiCallPromise = generateObject(aiCallConfig);
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error(`AI call timeout after ${currentModel.timeout / 1000}s`)), currentModel.timeout);
