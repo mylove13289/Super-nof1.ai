@@ -349,7 +349,7 @@ export async function getCurrentMarketState(
         macd: last10MACD,
         rsi_7: last10RSI7,
         rsi_14: last10RSI14,
-      }
+      },
       short_term: {
           ema_20: Number(ema20_15m[ema20_15m.length - 1]) || 0,
           ema_50: Number(ema50_15m[ema50_15m.length - 1]) || 0,
