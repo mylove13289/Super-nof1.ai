@@ -217,7 +217,9 @@ export async function run(initialCapital?: number) {
       throw new Error("AI response missing 'decisions' array");
     }
 
-    console.log(`📋 ${decisions.length} decision(s)`);
+    console.log(`-------------------📋 ${decisions.length} decision(s)`);
+    //打印decisions详情
+    console.log(`-------------------📋 decisions: ${JSON.stringify(decisions)}`);
 
     // Check daily loss limit before any trade
     const totalUnrealizedPnl = accountInformationAndPerformance.positions.reduce(
