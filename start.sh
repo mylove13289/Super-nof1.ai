@@ -4,4 +4,4 @@ npm install lightningcss
 npm install tailwindcss
 npm install oxide
 
-npm run dev
+exec npm run dev </dev/null >> nohup.out 2>&1 &
