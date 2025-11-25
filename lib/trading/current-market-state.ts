@@ -398,46 +398,38 @@ export function formatMarketState(symbol: string, state: MarketState): string {
 
   return `## ALL ${symbol} DATA
 
-I. Real-time Indicators
-current_price: ${state.current_price}
-current_ema20: ${state.current_ema20.toFixed(3)}
-current_macd: ${state.current_macd.toFixed(3)}
-current_rsi (7 period): ${state.current_rsi.toFixed(3)}
-Open Interest (Latest): ${state.open_interest.latest.toFixed(2)}
-Open Interest (Average): ${state.open_interest.average.toFixed(2)}
-Funding Rate: ${state.funding_rate.toExponential(2)}
-
-II. Intraday Series Indicators (3-minute intervals, oldest �?newest)
-Mid prices: [${state.intraday.mid_prices.map((v) => v.toFixed(1)).join(", ")}]
-EMA indicators (20-period): [${state.intraday.ema_20.map((v) => v.toFixed(3)).join(", ")}]
-MACD indicators: [${state.intraday.macd.map((v) => v.toFixed(3)).join(", ")}]
-RSI indicators (7-Period): [${state.intraday.rsi_7.map((v) => v.toFixed(3)).join(", ")}]
-RSI indicators (14-Period): [${state.intraday.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
-
-III. Longer-term Context Indicators (4-hour timeframe)
-20-Period EMA: ${state.longer_term.ema_20.toFixed(3)}
-50-Period EMA: ${state.longer_term.ema_50.toFixed(3)}
-3-Period ATR: ${state.longer_term.atr_3.toFixed(3)}
-14-Period ATR: ${state.longer_term.atr_14.toFixed(3)}
-Current Volume: ${state.longer_term.current_volume.toFixed(3)}
-Average Volume: ${state.longer_term.average_volume.toFixed(3)}
-MACD indicators: [${state.longer_term.macd.map((v) => v.toFixed(3)).join(", ")}]
-RSI indicators (14-Period): [${state.longer_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
+    I. Real-time Indicators
+    current_price: ${state.current_price}
+    current_ema20: ${state.current_ema20.toFixed(3)}
+    current_macd: ${state.current_macd.toFixed(3)}
+    current_rsi (7 period): ${state.current_rsi.toFixed(3)}
+    Open Interest (Latest): ${state.open_interest.latest.toFixed(2)}
+    Open Interest (Average): ${state.open_interest.average.toFixed(2)}
+    Funding Rate: ${state.funding_rate.toExponential(2)}
 
 
-III. Longer-term Context Indicators (15m timeframe)
-20-Period EMA: ${state.short_term.ema_20.toFixed(3)}
-50-Period EMA: ${state.short_term.ema_50.toFixed(3)}
-3-Period ATR: ${state.short_term.atr_3.toFixed(3)}
-14-Period ATR: ${state.short_term.atr_14.toFixed(3)}
-Current Volume: ${state.short_term.current_volume.toFixed(3)}
-Average Volume: ${state.short_term.average_volume.toFixed(3)}
-MACD indicators: [${state.short_term.macd.map((v) => v.toFixed(3)).join(", ")}]
-RSI indicators (14-Period): [${state.short_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
+    II. short-term Context Indicators (15m timeframe)
+    20-Period EMA: ${state.short_term.ema_20.toFixed(3)}
+    50-Period EMA: ${state.short_term.ema_50.toFixed(3)}
+    3-Period ATR: ${state.short_term.atr_3.toFixed(3)}
+    14-Period ATR: ${state.short_term.atr_14.toFixed(3)}
+    Current Volume: ${state.short_term.current_volume.toFixed(3)}
+    Average Volume: ${state.short_term.average_volume.toFixed(3)}
+    MACD indicators: [${state.short_term.macd.map((v) => v.toFixed(3)).join(", ")}]
+    RSI indicators (14-Period): [${state.short_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
+
+    III. Longer-term Context Indicators (4-hour timeframe)
+    20-Period EMA: ${state.longer_term.ema_20.toFixed(3)}
+    50-Period EMA: ${state.longer_term.ema_50.toFixed(3)}
+    3-Period ATR: ${state.longer_term.atr_3.toFixed(3)}
+    14-Period ATR: ${state.longer_term.atr_14.toFixed(3)}
+    Current Volume: ${state.longer_term.current_volume.toFixed(3)}
+    Average Volume: ${state.longer_term.average_volume.toFixed(3)}
+    MACD indicators: [${state.longer_term.macd.map((v) => v.toFixed(3)).join(", ")}]
+    RSI indicators (14-Period): [${state.longer_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
 
 
-${formatKlines(state.kline_data.minute_1, "1-Minute")}
-${formatKlines(state.kline_data.minute_15, "15-Minute")}
-${formatKlines(state.kline_data.hour_4, "4-Hour")}
-`.trim();
+    ${formatKlines(state.kline_data.minute_15, "15-Minute")}
+    ${formatKlines(state.kline_data.hour_4, "4-Hour")}
+    `.trim();
 }
