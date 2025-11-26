@@ -171,6 +171,29 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         await ensureTimeSync();
 
         const client = await getBinanceInstance();
+        
+        // 🔍 Debug: Print all available functions on the client
+        console.log("\n" + "=".repeat(80));
+        console.log("📋 Binance Client Available Methods:");
+        console.log("=".repeat(80));
+        
+        const allKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(client));
+        const methods = allKeys.filter(key => typeof (client as any)[key] === 'function');
+        
+        methods.forEach((method, index) => {
+            console.log(`${(index + 1).toString().padStart(3, ' ')}. ${method}`);
+        });
+        
+        console.log("\nTotal methods: " + methods.length);
+        console.log("=".repeat(80) + "\n");
+        
+        // Also log instance properties
+        const instanceKeys = Object.keys(client);
+        if (instanceKeys.length > 0) {
+            console.log("📦 Client Instance Properties:");
+            console.log(instanceKeys.join(", "));
+            console.log("=".repeat(80) + "\n");
+        }
 
         // Convert symbol format: "BTC/USDT" -> "BTCUSDT"
         const binanceSymbol = symbol.replace("/", "");
@@ -179,22 +202,9 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         let currentPrice = price;
         if (!currentPrice) {
             try {
-                // Use tickerPrice for more reliable price fetching
-                const response = await (client as any).tickerPrice({ symbol: binanceSymbol });
-                const ticker = response.data || response;
-                
-                // Try different possible response structures
-                if (ticker.price) {
-                    currentPrice = parseFloat(ticker.price);
-                } else if (ticker.markPrice) {
-                    currentPrice = parseFloat(ticker.markPrice);
-                } else if (Array.isArray(ticker) && ticker.length > 0) {
-                    currentPrice = parseFloat(ticker[0].price || ticker[0].markPrice);
-                } else {
-                    throw new Error('Unexpected price response structure');
-                }
-                
-                console.log(`📊 Current ${symbol} price: $${currentPrice.toFixed(2)}`);
+                const ticker = await (client as any).markPrice({ symbol: binanceSymbol });
+                currentPrice = parseFloat(ticker.markPrice);
+                console.log(`📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
             } catch (e: any) {
                 const errorMsg = e?.response?.data?.msg || e?.message || String(e);
                 console.warn(`⚠️ Failed to fetch price, using fallback. Reason: ${errorMsg}`);
