@@ -179,9 +179,22 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         let currentPrice = price;
         if (!currentPrice) {
             try {
-                const ticker = await (client as any).markPrice({ symbol: binanceSymbol });
-                currentPrice = parseFloat(ticker.markPrice);
-                console.log(`📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
+                // Use tickerPrice for more reliable price fetching
+                const response = await (client as any).tickerPrice({ symbol: binanceSymbol });
+                const ticker = response.data || response;
+                
+                // Try different possible response structures
+                if (ticker.price) {
+                    currentPrice = parseFloat(ticker.price);
+                } else if (ticker.markPrice) {
+                    currentPrice = parseFloat(ticker.markPrice);
+                } else if (Array.isArray(ticker) && ticker.length > 0) {
+                    currentPrice = parseFloat(ticker[0].price || ticker[0].markPrice);
+                } else {
+                    throw new Error('Unexpected price response structure');
+                }
+                
+                console.log(`📊 Current ${symbol} price: $${currentPrice.toFixed(2)}`);
             } catch (e: any) {
                 const errorMsg = e?.response?.data?.msg || e?.message || String(e);
                 console.warn(`⚠️ Failed to fetch price, using fallback. Reason: ${errorMsg}`);
