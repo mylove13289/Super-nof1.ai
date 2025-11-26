@@ -214,6 +214,9 @@ export function getBinanceInstance(): Promise<UMFutures> {
                         console.log("✅ Binance official client configured and connected");
 
                         try {
+                            console.warn(`====================⚠️ Failed to fetch price, using fallback. Reason: ${binanceClient}`);
+                            console.warn(`====================⚠️ Failed to fetch price, using fallback. Reason: `, binanceClient);
+                            console.warn(`====================⚠️ Failed to fetch price, using fallback. Reason: `, binanceClient.markPrice);
                             const ticker = await binanceClient.markPrice({ symbol: 'BTCUSDT' });
                         } catch (e: any) {
                             const errorMsg = e?.response?.data?.msg || e?.message || String(e);
