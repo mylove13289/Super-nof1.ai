@@ -215,12 +215,9 @@ export function getBinanceInstance(): Promise<UMFutures> {
 
                         try {
                             const ticker = await binanceClient.markPrice({ symbol: 'BTCUSDT' });
-                            currentPrice = parseFloat(ticker.markPrice);
-                            console.log(`=====================📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
                         } catch (e: any) {
                             const errorMsg = e?.response?.data?.msg || e?.message || String(e);
                             console.warn(`====================⚠️ Failed to fetch price, using fallback. Reason: ${errorMsg}`);
-                            currentPrice = 1; // 后备方案
                         }
 
                         return binanceClient;
