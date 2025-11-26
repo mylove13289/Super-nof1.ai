@@ -183,7 +183,8 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
                 currentPrice = parseFloat(ticker.markPrice);
                 console.log(`📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
             } catch (e: any) {
-                console.warn(`⚠️ Failed to fetch price, using fallback`);
+                const errorMsg = e?.response?.data?.msg || e?.message || String(e);
+                console.warn(`⚠️ Failed to fetch price, using fallback. Reason: ${errorMsg}`);
                 currentPrice = 1; // 后备方案
             }
         }
