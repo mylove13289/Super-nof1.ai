@@ -1,4 +1,4 @@
-fimport { getBinanceInstance, ensureTimeSync, getBinanceBaseUrl } from "./binance-official";
+import { getBinanceInstance, ensureTimeSync, getBinanceBaseUrl } from "./binance-official";
 import { setStopLossTakeProfit } from "./stop-loss-take-profit-official";
 import crypto from 'crypto';
 
