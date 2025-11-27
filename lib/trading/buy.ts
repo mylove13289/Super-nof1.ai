@@ -1,4 +1,4 @@
-import { getBinanceInstance, ensureTimeSync, getBinanceBaseUrl } from "./binance-official";
+fimport { getBinanceInstance, ensureTimeSync, getBinanceBaseUrl } from "./binance-official";
 import { setStopLossTakeProfit } from "./stop-loss-take-profit-official";
 import crypto from 'crypto';
 
@@ -171,22 +171,22 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         await ensureTimeSync();
 
         const client = await getBinanceInstance();
-        
+
         // 🔍 Debug: Print all available functions on the client
         console.log("\n" + "=".repeat(80));
         console.log("📋 Binance Client Available Methods:");
         console.log("=".repeat(80));
-        
+
         const allKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(client));
         const methods = allKeys.filter(key => typeof (client as any)[key] === 'function');
-        
+
         methods.forEach((method, index) => {
             console.log(`${(index + 1).toString().padStart(3, ' ')}. ${method}`);
         });
-        
+
         console.log("\nTotal methods: " + methods.length);
         console.log("=".repeat(80) + "\n");
-        
+
         // Also log instance properties
         const instanceKeys = Object.keys(client);
         if (instanceKeys.length > 0) {
@@ -198,124 +198,67 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         // Convert symbol format: "BTC/USDT" -> "BTCUSDT"
         const binanceSymbol = symbol.replace("/", "");
 
-        // 🔍 获取当前市场价格（市价单和限价单都需要用于验证）
+        // 🔍 如果是市价单，先获取当前价格用于订单价值计�?
         let currentPrice = price;
         if (!currentPrice) {
-            console.log(`🔍 Fetching current market price for ${symbol}...`);
             try {
-                // Try tickerPrice first (more reliable based on memory)
-                const ticker = await (client as any).tickerPrice(binanceSymbol);
-                if (ticker?.price) {
-                    currentPrice = parseFloat(ticker.price);
-                } else if (ticker?.data?.price) {
-                    currentPrice = parseFloat(ticker.data.price);
-                } else if (typeof ticker === 'string' || typeof ticker === 'number') {
-                    currentPrice = parseFloat(String(ticker));
-                } else {
-                    throw new Error(`Unexpected ticker format: ${JSON.stringify(ticker)}`);
-                }
-                console.log(`📊 Current ${symbol} price (ticker): $${currentPrice.toFixed(2)}`);
+                const ticker = await (client as any).markPrice({ symbol: binanceSymbol });
+                currentPrice = parseFloat(ticker.markPrice);
+                console.log(`📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
             } catch (e: any) {
                 const errorMsg = e?.response?.data?.msg || e?.message || String(e);
-                console.warn(`⚠️ tickerPrice failed: ${errorMsg}. Trying markPrice...`);
-                try {
-                    const ticker = await (client as any).markPrice({ symbol: binanceSymbol });
-                    if (ticker?.markPrice) {
-                        currentPrice = parseFloat(ticker.markPrice);
-                    } else if (ticker?.data?.markPrice) {
-                        currentPrice = parseFloat(ticker.data.markPrice);
-                    } else {
-                        throw new Error(`Unexpected markPrice format: ${JSON.stringify(ticker)}`);
-                    }
-                    console.log(`📊 Current ${symbol} mark price: $${currentPrice.toFixed(2)}`);
-                } catch (e2: any) {
-                    console.error(`❌ CRITICAL: Cannot fetch price for ${symbol}`);
-                    console.error(`   tickerPrice error: ${errorMsg}`);
-                    console.error(`   markPrice error: ${e2?.response?.data?.msg || e2?.message}`);
-                    throw new Error(`Unable to fetch current price for ${symbol}. Cannot validate order value.`);
-                }
+                console.warn(`⚠️ Failed to fetch price, using fallback. Reason: ${errorMsg}`);
+                currentPrice = 1; // 后备方案
             }
-        } else {
-            console.log(`📊 Using provided limit price: $${currentPrice.toFixed(2)}`);
-        }
-
-        // Validate price is valid
-        if (!currentPrice || currentPrice <= 0 || isNaN(currentPrice)) {
-            throw new Error(`Invalid price: ${currentPrice}. Cannot proceed with order.`);
         }
 
         // 调整数量精度
         let adjustedAmount = adjustPrecision(amount, binanceSymbol);
         const minAmount = Math.pow(10, -(SYMBOL_PRECISION[binanceSymbol]?.quantity || 3));
-        const config = SYMBOL_PRECISION[binanceSymbol] || { quantity: 3, price: 2, minNotional: 100 };
 
-        // 🎯 智能处理：确保满足最小数量 AND 最小名义价值($100)要求
-        let effectiveLeverage = leverage; // 实际使用的杠杆
-        const currentNotional = adjustedAmount * currentPrice;
-        
-        console.log(`\n📊 Order Value Analysis:`);
-        console.log(`   Amount: ${adjustedAmount} ${symbol}`);
-        console.log(`   Price: $${currentPrice.toFixed(2)}`);
-        console.log(`   Current Value: $${currentNotional.toFixed(2)}`);
-        console.log(`   Min Required: $${config.minNotional}`);
-        console.log(`   Min Quantity: ${minAmount}`);
-        
-        if (adjustedAmount < minAmount || currentNotional < config.minNotional) {
-            console.log(`\n⚠️ Order does not meet Binance requirements:`);
-            if (adjustedAmount < minAmount) {
-                console.log(`   ❌ Quantity ${adjustedAmount} < minimum ${minAmount}`);
-            }
-            if (currentNotional < config.minNotional) {
-                console.log(`   ❌ Value $${currentNotional.toFixed(2)} < minimum $${config.minNotional}`);
-            }
+        // 🎯 智能处理小订�? 自动放大杠杆或建议放�?
+        let effectiveLeverage = leverage; // 实际使用的杠�?
+        if (adjustedAmount === 0 || adjustedAmount < minAmount) {
+            console.log(`⚠️ Amount ${amount} too small (min: ${minAmount})`);
 
-            // Calculate minimum amount needed to meet BOTH requirements
-            const minQtyRequired = minAmount;
-            const minNotionalRequired = (config.minNotional * 1.02) / currentPrice; // 2% buffer
-            const minRequiredAmount = Math.max(minQtyRequired, minNotionalRequired);
-            
-            // Adjust to precision and iterate until we meet notional requirement
-            let finalMinAmount = adjustPrecision(minRequiredAmount, binanceSymbol);
-            let iterations = 0;
-            while (finalMinAmount * currentPrice < config.minNotional && iterations < 10) {
-                finalMinAmount += minAmount;
-                iterations++;
-                console.log(`   🔧 Iteration ${iterations}: ${finalMinAmount} × $${currentPrice.toFixed(2)} = $${(finalMinAmount * currentPrice).toFixed(2)}`);
-            }
-            
-            if (finalMinAmount * currentPrice < config.minNotional) {
-                return {
-                    success: false,
-                    error: `Cannot meet $${config.minNotional} minimum requirement after 10 iterations. SKIP TRADE.`
-                };
-            }
-            
-            const finalNotionalValue = finalMinAmount * currentPrice;
-            const requiredMultiplier = Math.ceil(finalMinAmount / amount);
-            const suggestedLeverage = Math.min(leverage * requiredMultiplier, 30);
+            // 计算需要的最小数量和对应的杠杆（使用实际价格�?
+            const currentPositionValue = amount * currentPrice;
+            const minPositionValue = minAmount * currentPrice;
+            const suggestedMultiplier = Math.ceil(minPositionValue / currentPositionValue);
+            const suggestedLeverage = Math.min(leverage * suggestedMultiplier, 30);
 
-            console.log(`\n💡 Smart Adjustment Required:`);
-            console.log(`   Current: ${amount} ${symbol} @ ${leverage}x = $${currentNotional.toFixed(2)}`);
-            console.log(`   Required: ${finalMinAmount} ${symbol} @ ${suggestedLeverage}x = $${finalNotionalValue.toFixed(2)}`);
-            console.log(`   Multiplier: ${requiredMultiplier}x`);
+            // 建议策略
+            console.log(`💡 Smart Order Suggestion:`);
+            console.log(`   Current: ${amount} ${symbol} @ ${leverage}x = $${currentPositionValue.toFixed(2)}`);
+            console.log(`   Minimum: ${minAmount} ${symbol} = $${minPositionValue.toFixed(2)}`);
+            console.log(`   Option 1: 🚀 Increase to ${suggestedLeverage}x leverage (${suggestedMultiplier}x position)`);
+            console.log(`   Option 2: ⏭️  Skip this trade (signal too weak)`);
 
+            // 🔥 激进策�? 允许最�?0x杠杆，最�?0倍位置放�?
             const MAX_SAFE_LEVERAGE = 30;
             const MAX_POSITION_MULTIPLIER = 20;
 
-            if (suggestedLeverage <= MAX_SAFE_LEVERAGE && requiredMultiplier <= MAX_POSITION_MULTIPLIER) {
-                adjustedAmount = finalMinAmount;
-                effectiveLeverage = suggestedLeverage;
-                console.log(`   ✅ Auto-adjusted: ${adjustedAmount} ${symbol} @ ${effectiveLeverage}x = $${(adjustedAmount * currentPrice).toFixed(2)}`);
-                console.log(`   ⚠️ WARNING: Ensure sufficient margin available.`);
+            // 🛡�?保证金安全检查：考虑账户余额
+            // 假设需要至�?2% 的账户余额作为保证金（考虑维持保证金和手续费）
+            const MARGIN_SAFETY_FACTOR = 0.02; // 2% 的账户用于单笔交�?
+            const estimatedAccountBalance = minPositionValue / MARGIN_SAFETY_FACTOR; // 反推需要的账户余额
+
+            if (suggestedLeverage <= MAX_SAFE_LEVERAGE && suggestedMultiplier <= MAX_POSITION_MULTIPLIER) {
+                adjustedAmount = minAmount;
+                effectiveLeverage = suggestedLeverage; // 🔥 更新实际杠杆�?
+                console.log(`�?Auto-adjusting: ${amount} �?${adjustedAmount} ${symbol}`);
+                console.log(`📈 Effective leverage increased to ${effectiveLeverage}x (within ${MAX_SAFE_LEVERAGE}x limit)`);
+                console.log(`💰 Estimated required account balance: $${estimatedAccountBalance.toFixed(2)}`);
+                console.log(`   ⚠️ WARNING: This assumes you have sufficient margin. If "Margin is insufficient" error occurs, the AI will skip this trade.`);
             } else {
                 return {
                     success: false,
-                    error: `Required ${requiredMultiplier}x multiplier (${suggestedLeverage}x leverage) exceeds safe limit ${MAX_SAFE_LEVERAGE}x. SKIP TRADE.`
+                    error: `Amount ${amount} too small. Minimum for ${symbol} is ${minAmount}. Suggested leverage ${suggestedLeverage}x exceeds safe limit ${MAX_SAFE_LEVERAGE}x - SKIP THIS TRADE.`
                 };
             }
         }
 
-        // 🛡️最终安全检查：确保调整后的数量有效
+        // 🛡�?最终安全检查：确保调整后的数量有效
         if (adjustedAmount <= 0 || adjustedAmount < minAmount) {
             return {
                 success: false,
@@ -323,27 +266,9 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
             };
         }
 
-        console.log(`\n✅ Final order amount: ${adjustedAmount} ${symbol} (original: ${amount})`);
+        console.log(`�?Final order amount: ${adjustedAmount} ${symbol} (original: ${amount})`);
 
-        // 🛡️ CRITICAL: Final validation - ensure notional value meets Binance $100 minimum
-        const finalNotional = adjustedAmount * currentPrice;
-        console.log(`📊 Final Order Value: $${finalNotional.toFixed(2)} (min: $${config.minNotional})`);
-        
-        if (finalNotional < config.minNotional) {
-            const shortfall = config.minNotional - finalNotional;
-            console.error(`\n❌ CRITICAL VALIDATION FAILURE:`);
-            console.error(`   Order Value: $${finalNotional.toFixed(2)}`);
-            console.error(`   Required: $${config.minNotional}`);
-            console.error(`   Shortfall: $${shortfall.toFixed(2)}`);
-            return {
-                success: false,
-                error: `Order value $${finalNotional.toFixed(2)} below Binance minimum $${config.minNotional}. This trade will be rejected by Binance. SKIPPING.`
-            };
-        }
-        
-        console.log(`✅ Notional value validation PASSED\n`);
-
-        // Check limit order minimum (if applicable)
+        // 检查最小订单价�?限价�?
         if (price) {
             const notionalCheck = checkMinNotional(adjustedAmount, binanceSymbol, price);
             if (!notionalCheck.valid) {
@@ -404,6 +329,8 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
 
                 // Binance SDK requires: newOrder(symbol, side, type, options)
                 // Not just newOrder(options)!
+                 console.log(`==================📝 symbol: ${binanceSymbol}, side: BUY, type: ${orderType}, params: ${JSON.stringify(orderParams)}`);
+
                 const response = await (client as any).newOrder(
                     binanceSymbol,
                     "BUY",
@@ -417,27 +344,11 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
             } catch (orderError: any) {
                 lastError = orderError;
                 const errorMsg = orderError?.response?.data?.msg || orderError.message;
-                const errorCode = orderError?.response?.data?.code || orderError?.code;
-                
                 console.warn(`⚠️ Buy order attempt ${attempt} failed: ${errorMsg}`);
-                console.warn(`   Error Code: ${errorCode || 'N/A'}`);
-                
-                // Check if it's a notional value error - this should never happen after our validation
-                if (errorMsg && errorMsg.toLowerCase().includes("notional")) {
-                    console.error(`\n❌ CRITICAL: Order rejected due to notional value despite pre-validation!`);
-                    console.error(`   This indicates a validation bug or price changed between validation and submission.`);
-                    console.error(`   Debug Info:`);
-                    console.error(`     - Symbol: ${binanceSymbol}`);
-                    console.error(`     - Quantity: ${orderParams.quantity}`);
-                    console.error(`     - Validation Price: $${currentPrice.toFixed(2)}`);
-                    console.error(`     - Validation Notional: $${(parseFloat(orderParams.quantity) * currentPrice).toFixed(2)}`);
-                    // Don't retry notional errors - they will fail again
-                    throw new Error(`Notional value validation failed at exchange level. Trade cannot be executed.`);
-                }
 
                 if (attempt < 3) {
                     const delay = attempt * 3000; // Increasing delay: 3s, 6s
-                    console.log(`⏳Retrying in ${delay}ms...`);
+                    console.log(`�?Retrying in ${delay}ms...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                 } else {
                     throw orderError; // Last attempt failed, throw error
