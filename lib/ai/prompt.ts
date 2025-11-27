@@ -152,8 +152,8 @@ export function getTradingPrompt(symbolList: Symbol[]) {
           "symbol": "ETH",
           "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 4h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
           "buy": {
-            "pricing": 87400,
-            "amount": 0.00015,
+            "pricing": 3000,
+            "amount": 0.01,
             "leverage": 18,
             "stopLossPercent": 2.8,
             "takeProfitPercent": 8.5
