@@ -50,7 +50,7 @@ export async function run(initialCapital?: number) {
     //"DOGE/USDT"
 
   const supportedSymbols = [
-    "BTC/USDT"
+    "ETH/USDT"
   ];
 
 
