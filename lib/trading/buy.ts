@@ -298,10 +298,16 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
         // Prepare order parameters
         const orderType = price ? "LIMIT" : "MARKET";
 
-        // 🔧 orderParams 只包含额外参数，不包�?symbol/side/type（这些通过函数参数传递）
+        // 🔧 orderParams 只包含额外参数，不包symbol/side/type（这些通过函数参数传递）
         const orderParams: any = {
+            quantity: '0.00015',
+        };
+
+        const _orderParams: any = {
             quantity: adjustedAmount.toString(),
         };
+
+        
 
         // Only set positionSide for DUAL_SIDE mode (双向持仓)
         if (positionMode === "DUAL_SIDE") {
