@@ -81,7 +81,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
 
         5️⃣ STOP LOSS & TAKE PROFIT (MANDATORY FOR ALL BUY ORDERS):
            - Stop Loss Distance: 1.5-2.5× ATR, placed below/above recent swing point
-           - BTC/ETH: Typically 2-4% stop, 6-10% first take profit
+           - ETH/USDT: Typically 2-4% stop, 6-10% first take profit
            - Volatile coins: 5-8% stop, 12-18% first take profit
            - Always explain your calculation in "chat" field
            - Use tiered exits: 50% at TP1, 30% at TP2, 20% trailing
@@ -105,7 +105,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
           "decisions": [
             {
               "opeartion": "Buy" | "Sell" | "Hold",
-              "symbol": "BTC",  // Must be: BTC (no USDT suffix)
+              "symbol": "ETH",  // Must be: ETH (no USDT suffix)
               "chat": "<Your analysis: why this trade, what confirmations you see, confidence level>",
 
               "buy": {  // REQUIRED for "Buy" opeartion
@@ -140,7 +140,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
 
         CRITICAL RULES:
         1. Field "opeartion" must use exact spelling (not "operation")
-        2. Symbol: BTC only (no /USDT suffix)
+        2. Symbol: ETH only (no /USDT suffix)
         3. Buy orders MUST have stopLossPercent and takeProfitPercent
         4. Every decision MUST have "prediction" field
         5. Only sell positions that exist (check "Current Position Information" section)
@@ -149,7 +149,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
         EXAMPLE BUY DECISION:
         {
           "opeartion": "Buy",
-          "symbol": "BTC",
+          "symbol": "ETH",
           "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 4h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
           "buy": {
             "pricing": 87400,
@@ -187,7 +187,7 @@ If opeartion is "Sell", include:
 EXAMPLE Buy response:
 {
   "opeartion": "Buy",
-  "symbol": "BTC",
+  "symbol": "ETH",
   "chat": "Analysis...",
   "buy": {"pricing": 45000, "amount": 100, "leverage": 3}
 }
@@ -290,7 +290,7 @@ ANALYSIS INSTRUCTIONS:
 
 5. **DYNAMIC STOP-LOSS / TAKE-PROFIT**:
   - Stop Loss: Use 1.5-2.5× ATR from entry, placed below/above recent swing point
-  - BTC/ETH: typically 2-4% stop, 6-10% take profit for first target
+  - ETH/USDT: typically 2-4% stop, 6-10% take profit for first target
   - DOGE/volatile assets: 5-8% stop, 12-18% take profit
   - Always set BOTH stopLossPercent and takeProfitPercent for every Buy order
   - Include calculation logic in "chat" field
