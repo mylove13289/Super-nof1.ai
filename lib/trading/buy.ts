@@ -300,7 +300,7 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
 
         // 🔧 orderParams 只包含额外参数，不包symbol/side/type（这些通过函数参数传递）
         const orderParams: any = {
-            quantity: '0.00015',
+            quantity: '0.01',
         };
 
 
