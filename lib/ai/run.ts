@@ -85,7 +85,7 @@ export async function run(initialCapital?: number) {
 
     // Generate trading prompt with supported symbols (now supports multi-symbol decisions)
     //const supportedSymbolEnums = [Symbol.BTC, Symbol.ETH, Symbol.SOL, Symbol.BNB, Symbol.DOGE];
-    const supportedSymbolEnums = [Symbol.BTC];
+    const supportedSymbolEnums = [Symbol.ETH];
 
     const tradingPrompt = getTradingPrompt(supportedSymbolEnums);
 
