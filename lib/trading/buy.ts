@@ -303,9 +303,6 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
             quantity: '0.00015',
         };
 
-        const _orderParams: any = {
-            quantity: adjustedAmount.toString(),
-        };
 
         
 
