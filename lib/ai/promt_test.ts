@@ -277,6 +277,7 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
         4. Every decision MUST have "prediction" field
         5. Only sell positions that exist (check "Current Position Information" section)
         6. Amount calculation: (Balance × Risk%) / (StopLoss% × Leverage × Price)
+        7. NO NEW POSITIONS IF EXISTING POSITION EXISTS: If "Total Active Positions" > 0, you MUST NOT open any new Buy orders. Only return "Hold" or "Sell" decisions for managing existing positions.
 
         EXAMPLE BUY DECISION:
         {
