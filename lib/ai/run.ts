@@ -426,7 +426,8 @@ export async function run(initialCapital?: number) {
           (object.adjustProfit.stopLoss != null ||
             object.adjustProfit.takeProfit != null);
 
-        if (shouldAdjustProfit) {
+        //暂时不执行 调整止盈止损操作
+        if (shouldAdjustProfit && false) {
           // Set stop-loss and take-profit orders
           console.log(`🎯 Setting SL/TP for ${object.symbol} (Mode: ${riskConfig.tradingMode})...`);
           const tradingSymbol = `${object.symbol}/USDT`;

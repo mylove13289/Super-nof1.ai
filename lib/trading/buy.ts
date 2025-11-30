@@ -172,28 +172,6 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
 
         const client = await getBinanceInstance();
 
-        // 🔍 Debug: Print all available functions on the client
-        console.log("\n" + "=".repeat(80));
-        console.log("📋 Binance Client Available Methods:");
-        console.log("=".repeat(80));
-
-        const allKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(client));
-        const methods = allKeys.filter(key => typeof (client as any)[key] === 'function');
-
-        methods.forEach((method, index) => {
-            console.log(`${(index + 1).toString().padStart(3, ' ')}. ${method}`);
-        });
-
-        console.log("\nTotal methods: " + methods.length);
-        console.log("=".repeat(80) + "\n");
-
-        // Also log instance properties
-        const instanceKeys = Object.keys(client);
-        if (instanceKeys.length > 0) {
-            console.log("📦 Client Instance Properties:");
-            console.log(instanceKeys.join(", "));
-            console.log("=".repeat(80) + "\n");
-        }
 
         // Convert symbol format: "BTC/USDT" -> "BTCUSDT"
         const binanceSymbol = symbol.replace("/", "");
@@ -365,8 +343,8 @@ export async function buy(params: BuyParams): Promise<BuyResult> {
 
         console.log(`�?Buy order created successfully:`, orderResult);
 
-        // 🛡�?自动设置止盈止损
-        if (autoSetStopLoss) {
+        // 自动设置止盈止损
+        if (autoSetStopLoss && false) {
             console.log(`\n🛡�?Setting automatic stop loss and take profit...`);
 
             // 等待更长时间确保订单完全执行并同步到API
