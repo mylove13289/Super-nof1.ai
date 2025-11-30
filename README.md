@@ -18,6 +18,7 @@ inspired by alpha arena和open-nof1.ai项目，本项目在open-nof1.ai基础之
 ## pipeline
 交易逻辑：从官方api调取实时市场数据，每三分钟调用一次deepseek LLMs api，大模型经过精心准备输入的prompt，给出分析之后的策略，调用交易所api进行交易
 
+
 ## 核心特性
 
 ### AI 交易决策
@@ -465,6 +466,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 🤖 AI 系统不能保证盈利，过去的表现不代表未来结果
 - 💰 只投入你能承受损失的资金
 - 📚 在投资前请充分了解相关风险
+- aaa
 
 ---
 
