@@ -52,6 +52,7 @@ export interface MarketState {
   // K线数�?- 用于趋势预测分析
   kline_data: {
     minute_1: KlineData[]; // 最�?0�?分钟K�?
+    minute_1h: KlineData[]; // 最�?0�?分钟K�?
     hour_4: KlineData[];   // 最�?0�?小时K�?
     minute_15: KlineData[]; // 最�?0�?5分钟K�?
   };
@@ -395,7 +396,8 @@ export async function getCurrentMarketState(
         rsi_14: last10RSI14_1h,
       },
       kline_data: {
-        minute_1: buildKlineData(ohlcv1h, 10),
+        minute_1: buildKlineData(ohlcv1m, 10),
+        minute_1h: buildKlineData(ohlcv1h, 10),
         minute_15: buildKlineData(ohlcv15m, 10)
       },
     };
@@ -453,6 +455,6 @@ export function formatMarketState(symbol: string, state: MarketState): string {
 
 
     ${formatKlines(state.kline_data.minute_15, "15-Minute")}
-    ${formatKlines(state.kline_data.hour_1, "1-Hour")}
+    ${formatKlines(state.kline_data.hour_1h, "1-Hour")}
     `.trim();
 }
