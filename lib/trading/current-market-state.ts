@@ -213,7 +213,8 @@ export async function getCurrentMarketState(
     };
 
     const ohlcv1m = await withRetry(() => fetchKlines("1m", 100));
-    const ohlcv4h = await withRetry(() => fetchKlines("4h", 100));
+    const ohlcv1h = await withRetry(() => fetchKlines("1h", 100));
+    //const ohlcv4h = await withRetry(() => fetchKlines("4h", 100));
     // 获取15分钟K线数�?
     const ohlcv15m = await withRetry(() => fetchKlines("15m", 100));
 
@@ -221,17 +222,22 @@ export async function getCurrentMarketState(
     const closes1m = ohlcv1m.map((candle: number[]) => Number(candle[4])); // Close prices
 
     // Extract price data from 4-hour candles
-    const closes4h = ohlcv4h.map((candle: number[]) => Number(candle[4]));
-    const highs4h = ohlcv4h.map((candle: number[]) => Number(candle[2]));
-    const lows4h = ohlcv4h.map((candle: number[]) => Number(candle[3]));
-    const volumes4h = ohlcv4h.map((candle: number[]) => Number(candle[5]));
+    //const closes4h = ohlcv4h.map((candle: number[]) => Number(candle[4]));
+    //const highs4h = ohlcv4h.map((candle: number[]) => Number(candle[2]));
+    //const lows4h = ohlcv4h.map((candle: number[]) => Number(candle[3]));
+    //const volumes4h = ohlcv4h.map((candle: number[]) => Number(candle[5]));
 
-    // Extract price data from 4-hour candles
+    // Extract price data from 15m candles
     const closes15m = ohlcv15m.map((candle: number[]) => Number(candle[4]));
     const highs15m = ohlcv15m.map((candle: number[]) => Number(candle[2]));
     const lows15m = ohlcv15m.map((candle: number[]) => Number(candle[3]));
     const volumes15m = ohlcv15m.map((candle: number[]) => Number(candle[5]));
 
+    // Extract price data from 1h candles
+    const closes1h = ohlcv1h.map((candle: number[]) => Number(candle[4]));
+    const highs1h = ohlcv1h.map((candle: number[]) => Number(candle[2]));
+    const lows1h = ohlcv1h.map((candle: number[]) => Number(candle[3]));
+    const volumes1h = ohlcv1h.map((candle: number[]) => Number(candle[5]));
 
     // Calculate intraday indicators (1-minute timeframe)
     const ema20_1m = calculateEMA(closes1m, 20);
@@ -240,12 +246,12 @@ export async function getCurrentMarketState(
     const rsi14_1m = calculateRSI(closes1m, 14);
 
     // Calculate longer-term indicators (4-hour timeframe)
-    const ema20_4h = calculateEMA(closes4h, 20);
-    const ema50_4h = calculateEMA(closes4h, 50);
-    const atr3_4h = calculateATR(highs4h, lows4h, closes4h, 3);
-    const atr14_4h = calculateATR(highs4h, lows4h, closes4h, 14);
-    const macd_4h = calculateMACD(closes4h);
-    const rsi14_4h = calculateRSI(closes4h, 14);
+    //const ema20_4h = calculateEMA(closes4h, 20);
+    //const ema50_4h = calculateEMA(closes4h, 50);
+    //const atr3_4h = calculateATR(highs4h, lows4h, closes4h, 3);
+    //const atr14_4h = calculateATR(highs4h, lows4h, closes4h, 14);
+    //const macd_4h = calculateMACD(closes4h);
+    //const rsi14_4h = calculateRSI(closes4h, 14);
 
     // Calculate longer-term indicators (4-hour timeframe)
     const ema20_15m = calculateEMA(closes15m, 20);
@@ -254,6 +260,14 @@ export async function getCurrentMarketState(
     const atr14_15m = calculateATR(highs15m, lows15m, closes15m, 14);
     const macd_15m = calculateMACD(closes15m);
     const rsi14_15m = calculateRSI(closes15m, 14);
+
+    // Calculate longer-term indicators (4-hour timeframe)
+    const ema20_1h = calculateEMA(closes1h, 20);
+    const ema50_1h = calculateEMA(closes1h, 50);
+    const atr3_1h = calculateATR(highs1h, lows1h, closes1h, 3);
+    const atr14_1h = calculateATR(highs1h, lows1h, closes1h, 14);
+    const macd_1h = calculateMACD(closes1h);
+    const rsi14_1h = calculateRSI(closes1h, 14);
 
 
     // Get last 10 values for intraday series
@@ -264,8 +278,12 @@ export async function getCurrentMarketState(
     const last10RSI14 = rsi14_1m.slice(-10).map((v) => Number(v) || 0);
 
     // Get last 10 MACD and RSI values for 4-hour timeframe
-    const last10MACD4h = macd_4h.slice(-10).map((v) => Number(v) || 0);
-    const last10RSI14_4h = rsi14_4h.slice(-10).map((v) => Number(v) || 0);
+    //const last10MACD4h = macd_4h.slice(-10).map((v) => Number(v) || 0);
+    //const last10RSI14_4h = rsi14_4h.slice(-10).map((v) => Number(v) || 0);
+
+    // Get last 10 MACD and RSI values for 1-h timeframe
+    const last10MACD1h = macd_1h.slice(-10).map((v) => Number(v) || 0);
+    const last10RSI14_1h = rsi14_1h.slice(-10).map((v) => Number(v) || 0);
 
     const last10MACD15m = macd_15m.slice(-10).map((v) => Number(v) || 0);
     const last10RSI14_15m = rsi14_15m.slice(-10).map((v) => Number(v) || 0);
@@ -302,10 +320,16 @@ export async function getCurrentMarketState(
     }
 
     // Calculate average volume for 4-hour timeframe
-    const averageVolume4h =
-      volumes4h.reduce((sum: number, vol: number) => sum + vol, 0) /
-      volumes4h.length;
-    const currentVolume4h = volumes4h[volumes4h.length - 1];
+    //const averageVolume4h =
+    //  volumes4h.reduce((sum: number, vol: number) => sum + vol, 0) /
+    //  volumes4h.length;
+    //const currentVolume4h = volumes4h[volumes4h.length - 1];
+
+    // Calculate average volume for 4-hour timeframe
+    const averageVolume1h =
+      volumes1h.reduce((sum: number, vol: number) => sum + vol, 0) /
+      volumes1h.length;
+    const currentVolume1h = volumes1h[volumes1h.length - 1];
 
 
     // Calculate average volume for 4-hour timeframe
@@ -353,7 +377,7 @@ export async function getCurrentMarketState(
       short_term: {
           ema_20: Number(ema20_15m[ema20_15m.length - 1]) || 0,
           ema_50: Number(ema50_15m[ema50_15m.length - 1]) || 0,
-          atr_3: Number(atr3_15m[atr3_4h.length - 1]) || 0,
+          atr_3: Number(atr3_15m[atr3_15m.length - 1]) || 0,
           atr_14: Number(atr14_15m[atr14_15m.length - 1]) || 0,
           current_volume: currentVolume15m,
           average_volume: averageVolume15m,
@@ -361,19 +385,18 @@ export async function getCurrentMarketState(
           rsi_14: last10RSI14_15m,
         },
       longer_term: {
-        ema_20: Number(ema20_4h[ema20_4h.length - 1]) || 0,
-        ema_50: Number(ema50_4h[ema50_4h.length - 1]) || 0,
-        atr_3: Number(atr3_4h[atr3_4h.length - 1]) || 0,
-        atr_14: Number(atr14_4h[atr14_4h.length - 1]) || 0,
-        current_volume: currentVolume4h,
-        average_volume: averageVolume4h,
-        macd: last10MACD4h,
-        rsi_14: last10RSI14_4h,
+        ema_20: Number(ema20_1h[ema20_1h.length - 1]) || 0,
+        ema_50: Number(ema50_1h[ema50_1h.length - 1]) || 0,
+        atr_3: Number(atr3_1h[atr3_1h.length - 1]) || 0,
+        atr_14: Number(atr14_1h[atr14_1h.length - 1]) || 0,
+        current_volume: currentVolume1h,
+        average_volume: averageVolume1h,
+        macd: last10MACD1h,
+        rsi_14: last10RSI14_1h,
       },
       kline_data: {
-        minute_1: buildKlineData(ohlcv1m, 10),
-        hour_4: buildKlineData(ohlcv4h, 10),
-        minute_15: buildKlineData(ohlcv15m, 10),
+        minute_1: buildKlineData(ohlcv1h, 10),
+        minute_15: buildKlineData(ohlcv15m, 10)
       },
     };
   } catch (error) {
@@ -418,7 +441,7 @@ export function formatMarketState(symbol: string, state: MarketState): string {
     MACD indicators: [${state.short_term.macd.map((v) => v.toFixed(3)).join(", ")}]
     RSI indicators (14-Period): [${state.short_term.rsi_14.map((v) => v.toFixed(3)).join(", ")}]
 
-    III. Longer-term Context Indicators (4-hour timeframe)
+    III. Longer-term Context Indicators (1-hour timeframe)
     20-Period EMA: ${state.longer_term.ema_20.toFixed(3)}
     50-Period EMA: ${state.longer_term.ema_50.toFixed(3)}
     3-Period ATR: ${state.longer_term.atr_3.toFixed(3)}
@@ -430,6 +453,6 @@ export function formatMarketState(symbol: string, state: MarketState): string {
 
 
     ${formatKlines(state.kline_data.minute_15, "15-Minute")}
-    ${formatKlines(state.kline_data.hour_4, "4-Hour")}
+    ${formatKlines(state.kline_data.hour_1, "1-Hour")}
     `.trim();
 }

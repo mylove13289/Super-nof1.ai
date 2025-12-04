@@ -29,7 +29,7 @@ const userPrompt = `
         MACD indicators: [3.150, 3.453, 3.401, 3.507, 3.555, 3.411, 3.518, 3.331, 3.236, 3.189]
         RSI indicators (14-Period): [57.910, 61.140, 56.850, 59.140, 59.200, 56.580, 60.080, 55.750, 57.050, 57.990]
 
-        III. Longer-term Context Indicators (4-hour timeframe)
+        III. Longer-term Context Indicators (1-hour timeframe)
         20-Period EMA: 2999.470
         50-Period EMA: 2982.317
         3-Period ATR: 27.027
@@ -53,7 +53,7 @@ const userPrompt = `
       Candle 9: 📈 Bullish | O:3006.80 H:3009.21 L:3005.19 C:3007.93 | Change: +0.04% | Vol: 7621
       Candle 10: 📈 Bullish | O:3007.93 H:3009.20 L:3006.03 C:3008.73 | Change: +0.03% | Vol: 1889
 
-    4-Hour Candlestick Data (Latest 10 candles, oldest �?newest):
+    1-Hour Candlestick Data (Latest 10 candles, oldest �?newest):
       Candle 1: 📉 Bearish | O:3048.50 H:3058.39 L:3018.20 C:3029.80 | Change: -0.61% | Vol: 287665
       Candle 2: 📉 Bearish | O:3029.80 H:3051.46 L:3016.02 C:3021.51 | Change: -0.27% | Vol: 228763
       Candle 3: 📉 Bearish | O:3021.51 H:3044.24 L:2989.12 C:3003.23 | Change: -0.60% | Vol: 520379
@@ -110,16 +110,16 @@ const userPrompt = `
 
     4. **FOR NEW ENTRY OPPORTUNITIES** (PRIORITIZE THIS):
       Entry Signal Checklist (need 3+ confirmations):
-      ✓ 4H trend direction (uptrend for long, downtrend for short, or range-bound)
+      ✓ 1H trend direction (uptrend for long, downtrend for short, or range-bound)
       ✓ 15m momentum alignment (MACD turning positive for long, negative for short)
       ✓ Price structure (pullback to support/EMA for long, bounce to resistance for short)
       ✓ Volume confirmation (≥1.3× average for entries, ≥1.8× for breakouts)
       ✓ RSI not extreme (<70 for long entry, >30 for short entry)
 
       ENTRY RULES (FLEXIBLE, NOT RIGID):
-      - 4H bullish + 15m MACD turning positive + price near 15m EMA = STRONG LONG SIGNAL
-      - 4H bearish + 15m MACD turning negative + price near resistance = STRONG SHORT SIGNAL
-      - 4H ranging + price at range bottom + volume spike = RANGE LONG
+      - 1H bullish + 15m MACD turning positive + price near 15m EMA = STRONG LONG SIGNAL
+      - 1H bearish + 15m MACD turning negative + price near resistance = STRONG SHORT SIGNAL
+      - 1H ranging + price at range bottom + volume spike = RANGE LONG
       - Breakout with volume >1.8× average + retest confirmation = BREAKOUT ENTRY ALLOWED
 
       You DON'T need both MACD to be perfectly aligned - look for TURNING POINTS:
@@ -165,14 +165,14 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
 
         Multi-Timeframe Analysis Framework (SIMPLIFIED & PRACTICAL)
 
-        1️⃣ DETERMINE 4H CONTEXT (Primary Trend Filter):
-           - Bullish: Price above 4h 20 EMA, recent HH/HL structure, 4h MACD positive OR turning up
-           - Bearish: Price below 4h 20 EMA, recent LL/LH structure, 4h MACD negative OR turning down
+        1️⃣ DETERMINE 1H CONTEXT (Primary Trend Filter):
+           - Bullish: Price above 1h 20 EMA, recent HH/HL structure, 1h MACD positive OR turning up
+           - Bearish: Price below 1h 20 EMA, recent LL/LH structure, 1h MACD negative OR turning down
            - Ranging: Price oscillating between recent swing high/low, flat EMAs, choppy MACD
 
         2️⃣ IDENTIFY 15M ENTRY SIGNALS (Timing & Execution):
 
-           FOR LONG ENTRIES (in 4h bullish or ranging context):
+           FOR LONG ENTRIES (in 1h bullish or ranging context):
            ✓ 15m MACD histogram turning from negative to positive (momentum shift)
            ✓ Price pulling back to 15m EMA (20 or 50) or support level
            ✓ Volume ≥1.3× average (confirmation)
@@ -180,7 +180,7 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
            ✓ Bullish candle pattern (engulfing, hammer, strong close)
            → If 3+ signals align: ENTER LONG
 
-           FOR SHORT ENTRIES (in 4h bearish or ranging context):
+           FOR SHORT ENTRIES (in 1h bearish or ranging context):
            ✓ 15m MACD histogram turning from positive to negative
            ✓ Price bouncing to 15m EMA or resistance
            ✓ Volume ≥1.3× average
@@ -191,13 +191,13 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
            BREAKOUT ENTRIES (high-conviction momentum plays):
            ✓ Price closes beyond key level (recent high/low, range boundary)
            ✓ Volume ≥1.8× average (strong participation)
-           ✓ Both 4h and 15m MACD aligned in breakout direction
+           ✓ Both 1h and 15m MACD aligned in breakout direction
            ✓ Enter on retest of breakout level OR immediate continuation
            → ALLOWED and ENCOURAGED when conditions met
 
         3️⃣ ENTRY DECISION LOGIC:
            - You DON'T need perfect MACD alignment - look for MOMENTUM SHIFTS
-           - A 15m MACD turning positive (crossing zero) while 4h is neutral/positive = EARLY LONG SIGNAL
+           - A 15m MACD turning positive (crossing zero) while 1h is neutral/positive = EARLY LONG SIGNAL
            - Price bouncing off support + volume spike = VALID ENTRY even if MACD not perfect
            - Waiting for "perfect" alignment often means MISSING the move
            - BIAS TOWARD ACTION when you have 3+ technical confirmations
@@ -221,8 +221,8 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
         6️⃣ EXIT RULES:
            - Stop loss hit: Accept the loss, move on
            - Take profit hit: Lock gains, let remainder run with trailing stop
-           - Technical invalidation: Exit if 4h MACD flips against position
-           - 15m MACD flip: Tighten stop or take partial profit, but don't exit entirely unless 4h also weakens
+           - Technical invalidation: Exit if 1h MACD flips against position
+           - 15m MACD flip: Tighten stop or take partial profit, but don't exit entirely unless 1h also weakens
 
         7️⃣ RISK CONTROLS:
            - Check available cash before each trade
@@ -283,7 +283,7 @@ You are an elite crypto futures trader with a PROACTIVE, opportunity-seeking min
         {
           "opeartion": "Buy",
           "symbol": "ETH",
-          "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 4h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
+          "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 1h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
           "buy": {
             "pricing": 3000,
             "amount": 0.01,
