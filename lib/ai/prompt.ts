@@ -33,14 +33,14 @@ export function getTradingPrompt(symbolList: Symbol[]) {
 
         Multi-Timeframe Analysis Framework (SIMPLIFIED & PRACTICAL)
 
-        1️⃣ DETERMINE 4H CONTEXT (Primary Trend Filter):
-           - Bullish: Price above 4h 20 EMA, recent HH/HL structure, 4h MACD positive OR turning up
-           - Bearish: Price below 4h 20 EMA, recent LL/LH structure, 4h MACD negative OR turning down
+        1️⃣ DETERMINE 1H CONTEXT (Primary Trend Filter):
+           - Bullish: Price above 1h 20 EMA, recent HH/HL structure, 1h MACD positive OR turning up
+           - Bearish: Price below 1h 20 EMA, recent LL/LH structure, 1h MACD negative OR turning down
            - Ranging: Price oscillating between recent swing high/low, flat EMAs, choppy MACD
 
         2️⃣ IDENTIFY 15M ENTRY SIGNALS (Timing & Execution):
 
-           FOR LONG ENTRIES (in 4h bullish or ranging context):
+           FOR LONG ENTRIES (in 1h bullish or ranging context):
            ✓ 15m MACD histogram turning from negative to positive (momentum shift)
            ✓ Price pulling back to 15m EMA (20 or 50) or support level
            ✓ Volume ≥1.3× average (confirmation)
@@ -48,7 +48,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
            ✓ Bullish candle pattern (engulfing, hammer, strong close)
            → If 3+ signals align: ENTER LONG
 
-           FOR SHORT ENTRIES (in 4h bearish or ranging context):
+           FOR SHORT ENTRIES (in 1h bearish or ranging context):
            ✓ 15m MACD histogram turning from positive to negative
            ✓ Price bouncing to 15m EMA or resistance
            ✓ Volume ≥1.3× average
@@ -59,13 +59,13 @@ export function getTradingPrompt(symbolList: Symbol[]) {
            BREAKOUT ENTRIES (high-conviction momentum plays):
            ✓ Price closes beyond key level (recent high/low, range boundary)
            ✓ Volume ≥1.8× average (strong participation)
-           ✓ Both 4h and 15m MACD aligned in breakout direction
+           ✓ Both 1h and 15m MACD aligned in breakout direction
            ✓ Enter on retest of breakout level OR immediate continuation
            → ALLOWED and ENCOURAGED when conditions met
 
         3️⃣ ENTRY DECISION LOGIC:
            - You DON'T need perfect MACD alignment - look for MOMENTUM SHIFTS
-           - A 15m MACD turning positive (crossing zero) while 4h is neutral/positive = EARLY LONG SIGNAL
+           - A 15m MACD turning positive (crossing zero) while 1h is neutral/positive = EARLY LONG SIGNAL
            - Price bouncing off support + volume spike = VALID ENTRY even if MACD not perfect
            - Waiting for "perfect" alignment often means MISSING the move
            - BIAS TOWARD ACTION when you have 3+ technical confirmations
@@ -89,8 +89,8 @@ export function getTradingPrompt(symbolList: Symbol[]) {
         6️⃣ EXIT RULES:
            - Stop loss hit: Accept the loss, move on
            - Take profit hit: Lock gains, let remainder run with trailing stop
-           - Technical invalidation: Exit if 4h MACD flips against position
-           - 15m MACD flip: Tighten stop or take partial profit, but don't exit entirely unless 4h also weakens
+           - Technical invalidation: Exit if 1h MACD flips against position
+           - 15m MACD flip: Tighten stop or take partial profit, but don't exit entirely unless 1h also weakens
 
         7️⃣ RISK CONTROLS:
            - Check available cash before each trade
@@ -152,7 +152,7 @@ export function getTradingPrompt(symbolList: Symbol[]) {
         {
           "opeartion": "Buy",
           "symbol": "ETH",
-          "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 4h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
+          "chat": "Strong 8/10 long setup: 15m MACD turning positive, price bounced off 15m EMA at 87300, volume 1.5x avg, 1h trend bullish. Stop below swing low at 86900 (2.8% risk). TP at resistance 89800 (8.5% gain). Confidence HIGH.",
           "buy": {
             "pricing": 3000,
             "amount": 0.01,
@@ -272,16 +272,16 @@ ANALYSIS INSTRUCTIONS:
 
 4. **FOR NEW ENTRY OPPORTUNITIES** (PRIORITIZE THIS):
   Entry Signal Checklist (need 3+ confirmations):
-  ✓ 4H trend direction (uptrend for long, downtrend for short, or range-bound)
+  ✓ 1H trend direction (uptrend for long, downtrend for short, or range-bound)
   ✓ 15m momentum alignment (MACD turning positive for long, negative for short)
   ✓ Price structure (pullback to support/EMA for long, bounce to resistance for short)
   ✓ Volume confirmation (≥1.3× average for entries, ≥1.8× for breakouts)
   ✓ RSI not extreme (<70 for long entry, >30 for short entry)
 
   ENTRY RULES (FLEXIBLE, NOT RIGID):
-  - 4H bullish + 15m MACD turning positive + price near 15m EMA = STRONG LONG SIGNAL
-  - 4H bearish + 15m MACD turning negative + price near resistance = STRONG SHORT SIGNAL
-  - 4H ranging + price at range bottom + volume spike = RANGE LONG
+  - 1H bullish + 15m MACD turning positive + price near 15m EMA = STRONG LONG SIGNAL
+  - 1H bearish + 15m MACD turning negative + price near resistance = STRONG SHORT SIGNAL
+  - 1H ranging + price at range bottom + volume spike = RANGE LONG
   - Breakout with volume >1.8× average + retest confirmation = BREAKOUT ENTRY ALLOWED
 
   You DON'T need both MACD to be perfectly aligned - look for TURNING POINTS:
