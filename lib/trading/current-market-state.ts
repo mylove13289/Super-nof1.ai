@@ -37,7 +37,20 @@ export interface MarketState {
     rsi_14: number[];
   };
 
-  // Longer-term context (4-hour timeframe)
+  // Longer-term context (15 timeframe)
+  short_term: {
+    ema_20: number;
+    ema_50: number;
+    atr_3: number;
+    atr_14: number;
+    current_volume: number;
+    average_volume: number;
+    macd: number[];
+    rsi_14: number[];
+  };
+
+
+  // Longer-term context (1h timeframe)
   longer_term: {
     ema_20: number;
     ema_50: number;
@@ -51,9 +64,7 @@ export interface MarketState {
 
   // K线数�?- 用于趋势预测分析
   kline_data: {
-    minute_1: KlineData[]; // 最�?0�?分钟K�?
-    minute_1h: KlineData[]; // 最�?0�?分钟K�?
-    hour_4: KlineData[];   // 最�?0�?小时K�?
+    hour_1h: KlineData[]; // 最�?0�?分钟K�?
     minute_15: KlineData[]; // 最�?0�?5分钟K�?
   };
 }
@@ -396,8 +407,7 @@ export async function getCurrentMarketState(
         rsi_14: last10RSI14_1h,
       },
       kline_data: {
-        minute_1: buildKlineData(ohlcv1m, 10),
-        minute_1h: buildKlineData(ohlcv1h, 10),
+        hour_1h: buildKlineData(ohlcv1h, 10),
         minute_15: buildKlineData(ohlcv15m, 10)
       },
     };
